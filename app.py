@@ -1,4 +1,5 @@
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 # Konfigurasi Halaman Web
@@ -8,7 +9,7 @@ st.set_page_config(
 
 st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
 st.write(
-    "Aplikasi web interaktif untuk memonitoring data agregat CKG (Hipertensi, Diabetes, Dislipidemia, dan Kesehatan Gigi)."
+    "Aplikasi interaktif untuk monitoring data CKG (Hipertensi, Diabetes, Dislipidemia, & Pengobatan)."
 )
 
 # 1. Upload File Excel ASIK Kemenkes
@@ -21,68 +22,116 @@ if uploaded_file is not None:
   try:
     df = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
   except:
-    df = pd.read_excel(uploaded_file)  # Kalau sheet name berbeda
+    df = pd.read_excel(uploaded_file)
 
   st.success("✅ Data berhasil dimuat!")
 
-  # Menampilkan ringkasan ukuran data
-  st.info(
-      f"Total Baris Data Faskes: {df.shape[0]} | Total Kolom Variabel:"
-      f" {df.shape[1]}"
-  )
+  # 2. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes)
+  st.subheader("🔍 Filter Wilayah & Faskes")
 
-  # 2. Filter Interaktif Berdasarkan Wilayah (Kabupaten/Kota)
-  if "Nama Kabupaten Kota" in df.columns:
-    st.subheader("🔍 Filter Wilayah")
-    kab_list = ["Semua Kabupaten/Kota"] + list(df["Nama Kabupaten Kota"].unique())
-    pilih_kab = st.selectbox("Pilih Kabupaten / Kota:", options=kab_list)
+  col_f1, col_f2, col_f3 = st.columns(3)
 
-    if pilih_kab != "Semua Kabupaten/Kota":
-      df_filtered = df[df["Nama Kabupaten Kota"] == pilih_kab]
-    else:
-      df_filtered = df
-  else:
-    df_filtered = df
+  with col_f1:
+    if "Nama Kabupaten Kota" in df.columns:
+      kab_list = ["Semua"] + list(df["Nama Kabupaten Kota"].unique())
+      pilih_kab = st.selectbox("Kabupaten / Kota:", options=kab_list)
+      if pilih_kab != "Semua":
+        df = df[df["Nama Kabupaten Kota"] == pilih_kab]
 
-  # 3. Metrik Ringkasan Utama
-  st.subheader("📊 Ringkasan Kasus Utama (Total)")
+  with col_f2:
+    if "Nama Kecamatan" in df.columns:
+      kec_list = ["Semua"] + list(df["Nama Kecamatan"].unique())
+      pilih_kec = st.selectbox("Kecamatan:", options=kec_list)
+      if pilih_kec != "Semua":
+        df = df[df["Nama Kecamatan"] == pilih_kec]
+
+  with col_f3:
+    if "Nama Faskes" in df.columns:
+      faskes_list = ["Semua"] + list(df["Nama Faskes"].unique())
+      pilih_faskes = st.selectbox("Puskesmas / Faskes:", options=faskes_list)
+      if pilih_faskes != "Semua":
+        df = df[df["Nama Faskes"] == pilih_faskes]
+
+  # 3. Metrik Ringkasan Utama (Termasuk Data Pengobatan)
+  st.subheader("📊 Ringkasan Kasus & Pengobatan")
 
   col1, col2, col3, col4 = st.columns(4)
 
   with col1:
-    if "Jumlah Peserta Hadir Usia 18 Tahun" in df_filtered.columns:
-      total_peserta_18 = df_filtered["Jumlah Peserta Hadir Usia 18 Tahun"].sum()
-      st.metric("Peserta Hadir Usia ≥18 Thn", f"{total_peserta_18:,}")
+    total_ht = (
+        df["Jumlah Penderita Hipertensi"].sum()
+        if "Jumlah Penderita Hipertensi" in df.columns
+        else 0
+    )
+    st.metric("Total Penderita Hipertensi", f"{total_ht:,}")
 
   with col2:
-    if "Jumlah Penderita Hipertensi" in df_filtered.columns:
-      total_ht = df_filtered["Jumlah Penderita Hipertensi"].sum()
-      st.metric("Penderita Hipertensi", f"{total_ht:,}")
+    # Mencari kolom obat hipertensi (Biasanya kolom 'Diberikan Obat' setelah kolom HT)
+    obat_ht_cols = [
+        c
+        for c in df.columns
+        if "obat" in c.lower() and ("hipertensi" in c.lower() or "ht" in c.lower())
+    ]
+    # Jika tidak ketemu spesifik, kita cari kolom bernama 'Diberikan Obat'
+    if not obat_ht_cols and "Diberikan Obat" in df.columns:
+      obat_ht_cols = ["Diberikan Obat"]
+
+    obat_ht = df[obat_ht_cols[0]].sum() if obat_ht_cols else 0
+    st.metric("Hipertensi Diberikan Obat", f"{obat_ht:,}")
 
   with col3:
-    if "Jumlah Penderita Diabetes" in df_filtered.columns:
-      total_dm = df_filtered["Jumlah Penderita Diabetes"].sum()
-      st.metric("Penderita Diabetes", f"{total_dm:,}")
+    total_dm = (
+        df["Jumlah Penderita Diabetes"].sum()
+        if "Jumlah Penderita Diabetes" in df.columns
+        else 0
+    )
+    st.metric("Total Penderita Diabetes", f"{total_dm:,}")
 
   with col4:
-    if "Jumlah Peserta Dislipidemia" in df_filtered.columns:
-      total_lipid = df_filtered["Jumlah Peserta Dislipidemia"].sum()
-      st.metric("Kasus Dislipidemia", f"{total_lipid:,}")
+    obat_dm_cols = [
+        c
+        for c in df.columns
+        if "obat" in c.lower() and ("diabetes" in c.lower() or "dm" in c.lower())
+    ]
+    if not obat_dm_cols and "Diberikan Obat Diabetes" in df.columns:
+      obat_dm_cols = ["Diberikan Obat Diabetes"]
 
-  # 4. Tabel Detail Data Faskes
-  st.subheader("📋 Detail Data per Faskes")
-  st.dataframe(df_filtered)
+    obat_dm = df[obat_dm_cols[0]].sum() if obat_dm_cols else 0
+    st.metric("Diabetes Diberikan Obat", f"{obat_dm:,}")
 
-  # 5. Visualisasi Sederhana (Contoh: Grafik Kasus Berdasarkan Kecamatan)
-  if "Nama Kecamatan" in df_filtered.columns and "Jumlah Penderita Hipertensi" in df_filtered.columns:
-    st.subheader("📈 Perbandingan Penderita Hipertensi per Kecamatan")
-    chart_data = (
-        df_filtered.groupby("Nama Kecamatan")["Jumlah Penderita Hipertensi"]
+  # 4. Grafik Interaktif dengan Plotly (Muncul Angka di Batang Grafik)
+  if "Nama Kecamatan" in df.columns and "Jumlah Penderita Hipertensi" in df.columns:
+    st.subheader("📈 Grafik Penderita Hipertensi Berdasarkan Wilayah")
+
+    # Mengelompokkan data agar rapi di grafik
+    group_col = (
+        "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
+    )  # Bisa dinamis ke Faskes jika kecamatan dipilih
+    chart_df = (
+        df.groupby(group_col)["Jumlah Penderita Hipertensi"]
         .sum()
         .reset_index()
     )
-    chart_data = chart_data.set_index("Nama Kecamatan")
-    st.bar_chart(chart_data)
+
+    # Membuat bar chart interaktif menggunakan Plotly yang memunculkan angka langsung di atas batang
+    fig = px.bar(
+        chart_df,
+        x=group_col,
+        y="Jumlah Penderita Hipertensi",
+        text="Jumlah Penderita Hipertensi",
+        color="Jumlah Penderita Hipertensi",
+        color_continuous_scale="Blues",
+    )
+    fig.update_traces(
+        texttemplate="%{text:,}", textposition="outside"
+    )  # Memunculkan angka dengan format ribuan
+    fig.update_layout(xaxis_tickangle=-45, height=500)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+  # 5. Tabel Detail Data
+  st.subheader("📋 Tabel Data Detail")
+  st.dataframe(df)
 
 else:
   st.warning(
