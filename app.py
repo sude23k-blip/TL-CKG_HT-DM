@@ -2,6 +2,48 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+
+# CSS agar seluruh dashboard dapat di-scroll dan ditangkap sebagai full-page screenshot
+st.markdown("""
+<style>
+/* Hilangkan batas tinggi/overflow pada area utama */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
+    overflow: visible !important;
+}
+
+/* Pastikan area konten utama mengikuti seluruh tinggi isi */
+[data-testid="stAppViewContainer"] > .main {
+    overflow: visible !important;
+}
+
+[data-testid="stMainBlockContainer"] {
+    max-width: 100% !important;
+    overflow: visible !important;
+}
+
+/* Plotly tidak dipotong oleh parent container */
+[data-testid="stPlotlyChart"] {
+    overflow: visible !important;
+}
+
+/* Tabel tetap bisa melebar, tetapi tidak membuat halaman terpotong */
+[data-testid="stDataFrame"] {
+    width: 100% !important;
+}
+
+/* Jangan gunakan scroll horizontal/vertikal pada wrapper utama */
+section.main > div {
+    overflow: visible !important;
+}
+
+/* Beri ruang bawah agar screenshot sampai benar-benar ke akhir halaman */
+[data-testid="stMainBlockContainer"] {
+    padding-bottom: 80px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 # Konfigurasi Halaman Web
 st.set_page_config(
     page_title="Dashboard Analisis CKG Kemenkes", page_icon="🏥", layout="wide"
