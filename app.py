@@ -52,7 +52,7 @@ if uploaded_file is not None:
       if pilih_faskes != "Semua":
         df = df[df["Nama Faskes"] == pilih_faskes]
 
-  # 3. Metrik Ringkasan Utama
+  # 3. Metrik Ringkasan Utama (Dengan Persentase dari Skrining)
   st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
 
   col1, col2, col3, col4 = st.columns(4)
@@ -68,10 +68,11 @@ if uploaded_file is not None:
         if "Jumlah Penderita Hipertensi" in df.columns
         else 0
     )
+    prev_ht = (tot_ht / scr_ht * 100) if scr_ht > 0 else 0
     st.metric(
         "Total Penderita Hipertensi",
         f"{tot_ht:,}",
-        delta=f"Diskrining: {scr_ht:,}",
+        delta=f"{prev_ht:.1f}% dari {scr_ht:,} diskrining",
     )
 
   with col2:
@@ -94,10 +95,11 @@ if uploaded_file is not None:
         if "Jumlah Penderita Diabetes" in df.columns
         else 0
     )
+    prev_dm = (tot_dm / scr_dm * 100) if scr_dm > 0 else 0
     st.metric(
         "Total Penderita Diabetes",
         f"{tot_dm:,}",
-        delta=f"Diskrining: {scr_dm:,}",
+        delta=f"{prev_dm:.1f}% dari {scr_dm:,} diskrining",
     )
 
   with col4:
@@ -113,23 +115,42 @@ if uploaded_file is not None:
         delta=f"{persen_dm:.1f}% dari penderita",
     )
 
-  # 4. Grafik Batang Penderita Hipertensi per Wilayah
+  # 4. Grafik Batang Bersusun (Hipertensi & Diabetes per Wilayah)
+  group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
+
   if "Jumlah Penderita Hipertensi" in df.columns:
     st.subheader("📈 Grafik Penderita Hipertensi Berdasarkan Wilayah")
-    group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
-    chart_df = df.groupby(group_col)["Jumlah Penderita Hipertensi"].sum().reset_index()
-
-    fig_bar = px.bar(
-        chart_df,
+    chart_df_ht = (
+        df.groupby(group_col)["Jumlah Penderita Hipertensi"].sum().reset_index()
+    )
+    fig_bar_ht = px.bar(
+        chart_df_ht,
         x=group_col,
         y="Jumlah Penderita Hipertensi",
         text="Jumlah Penderita Hipertensi",
         color="Jumlah Penderita Hipertensi",
         color_continuous_scale="Blues",
     )
-    fig_bar.update_traces(texttemplate="%{text:,}", textposition="outside")
-    fig_bar.update_layout(xaxis_tickangle=-45, height=450)
-    st.plotly_chart(fig_bar, use_container_width=True)
+    fig_bar_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+    fig_bar_ht.update_layout(xaxis_tickangle=-45, height=450)
+    st.plotly_chart(fig_bar_ht, use_container_width=True)
+
+  if "Jumlah Penderita Diabetes" in df.columns:
+    st.subheader("📈 Grafik Penderita Diabetes Berdasarkan Wilayah")
+    chart_df_dm = (
+        df.groupby(group_col)["Jumlah Penderita Diabetes"].sum().reset_index()
+    )
+    fig_bar_dm = px.bar(
+        chart_df_dm,
+        x=group_col,
+        y="Jumlah Penderita Diabetes",
+        text="Jumlah Penderita Diabetes",
+        color="Jumlah Penderita Diabetes",
+        color_continuous_scale="Greens",
+    )
+    fig_bar_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+    fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
+    st.plotly_chart(fig_bar_dm, use_container_width=True)
 
   # 5. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
   st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
@@ -173,71 +194,62 @@ if uploaded_file is not None:
     fig_pie_dm.update_traces(textinfo="percent+value")
     st.plotly_chart(fig_pie_dm, use_container_width=True)
 
-  # 6. Grafik Alasan Tidak Diberikan Obat (HT & DM)
+  # 6. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
   st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
-  col_alasan1, col_alasan2 = st.columns(2)
 
-  with col_alasan1:
-    st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
-    cols_alasan_ht = [
-        c
-        for c in df.columns
-        if "Alasan Tidak Diberikan Obat Hipertensi" in c
-    ]
-    if cols_alasan_ht:
-      sum_alasan_ht = df[cols_alasan_ht].sum().reset_index()
-      sum_alasan_ht.columns = ["Alasan", "Jumlah"]
-      sum_alasan_ht["Alasan"] = sum_alasan_ht["Alasan"].str.replace(
-          "Alasan Tidak Diberikan Obat Hipertensi - ", ""
+  st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
+  cols_alasan_ht = [c for c in df.columns if "Alasan Tidak Diberikan Obat Hipertensi" in c]
+  if cols_alasan_ht:
+    sum_alasan_ht = df[cols_alasan_ht].sum().reset_index()
+    sum_alasan_ht.columns = ["Alasan", "Jumlah"]
+    sum_alasan_ht["Alasan"] = sum_alasan_ht["Alasan"].str.replace(
+        "Alasan Tidak Diberikan Obat Hipertensi - ", ""
+    )
+    sum_alasan_ht = sum_alasan_ht[sum_alasan_ht["Jumlah"] > 0]
+
+    if not sum_alasan_ht.empty:
+      fig_als_ht = px.bar(
+          sum_alasan_ht,
+          x="Jumlah",
+          y="Alasan",
+          orientation="h",
+          text="Jumlah",
+          color="Jumlah",
+          color_continuous_scale="Reds",
       )
-      sum_alasan_ht = sum_alasan_ht[sum_alasan_ht["Jumlah"] > 0]
+      fig_als_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_als_ht.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
+      st.plotly_chart(fig_als_ht, use_container_width=True)
+    else:
+      st.info("Tidak ada data alasan tidak diberikan obat hipertensi.")
 
-      if not sum_alasan_ht.empty:
-        fig_als_ht = px.bar(
-            sum_alasan_ht,
-            x="Jumlah",
-            y="Alasan",
-            orientation="h",
-            text="Jumlah",
-            color="Jumlah",
-            color_continuous_scale="Reds",
-        )
-        fig_als_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_als_ht.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
-        st.plotly_chart(fig_als_ht, use_container_width=True)
-      else:
-        st.info("Tidak ada data alasan tidak diberikan obat hipertensi.")
+  st.markdown("---")
 
-  with col_alasan2:
-    st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
-    cols_alasan_dm = [
-        c
-        for c in df.columns
-        if "Alasan Tidak Diberikan Obat Diabetes" in c
-    ]
-    if cols_alasan_dm:
-      sum_alasan_dm = df[cols_alasan_dm].sum().reset_index()
-      sum_alasan_dm.columns = ["Alasan", "Jumlah"]
-      sum_alasan_dm["Alasan"] = sum_alasan_dm["Alasan"].str.replace(
-          "Alasan Tidak Diberikan Obat Diabetes - ", ""
+  st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
+  cols_alasan_dm = [c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c]
+  if cols_alasan_dm:
+    sum_alasan_dm = df[cols_alasan_dm].sum().reset_index()
+    sum_alasan_dm.columns = ["Alasan", "Jumlah"]
+    sum_alasan_dm["Alasan"] = sum_alasan_dm["Alasan"].str.replace(
+        "Alasan Tidak Diberikan Obat Diabetes - ", ""
+    )
+    sum_alasan_dm = sum_alasan_dm[sum_alasan_dm["Jumlah"] > 0]
+
+    if not sum_alasan_dm.empty:
+      fig_als_dm = px.bar(
+          sum_alasan_dm,
+          x="Jumlah",
+          y="Alasan",
+          orientation="h",
+          text="Jumlah",
+          color="Jumlah",
+          color_continuous_scale="Oranges",
       )
-      sum_alasan_dm = sum_alasan_dm[sum_alasan_dm["Jumlah"] > 0]
-
-      if not sum_alasan_dm.empty:
-        fig_als_dm = px.bar(
-            sum_alasan_dm,
-            x="Jumlah",
-            y="Alasan",
-            orientation="h",
-            text="Jumlah",
-            color="Jumlah",
-            color_continuous_scale="Oranges",
-        )
-        fig_als_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_als_dm.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
-        st.plotly_chart(fig_als_dm, use_container_width=True)
-      else:
-        st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
+      fig_als_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_als_dm.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
+      st.plotly_chart(fig_als_dm, use_container_width=True)
+    else:
+      st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
 
   # 7. Tabel Detail Data
   st.subheader("📋 Tabel Data Detail")
