@@ -9,7 +9,7 @@ st.set_page_config(
 
 st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
 st.write(
-    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan pengobatan, prevalensi kasus, dan analisis alasan klinis."
+    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan diagnosis, pengobatan, prevalensi, dan analisis alasan klinis."
 )
 
 # 1. Upload File Excel ASIK Kemenkes
@@ -52,7 +52,7 @@ if uploaded_file is not None:
       if pilih_faskes != "Semua":
         df = df[df["Nama Faskes"] == pilih_faskes]
 
-  # 3. Metrik Ringkasan Utama (Dengan Persentase dari Skrining)
+  # 3. Metrik Ringkasan Utama
   st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
 
   col1, col2, col3, col4 = st.columns(4)
@@ -152,10 +152,141 @@ if uploaded_file is not None:
     fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
     st.plotly_chart(fig_bar_dm, use_container_width=True)
 
-  # 5. BARu: Grafik Persentase / Prevalensi Kasus dari Jumlah yang Diskrining per Wilayah
-  st.subheader("📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per Wilayah")
+  # 5. BARU: Analisis Diagnosis (Penderita vs Diberikan Diagnosis) & Alasan Tidak Diberikan Diagnosis
+  st.subheader("📋 Analisis Penegakan Diagnosis (HT & DM)")
 
-  # Menghitung persentase HT per wilayah
+  # --- Hipertensi: Diagnosis & Alasan ---
+  diag_ht = (
+      df["Diagnosis Hipertensi"].sum()
+      if "Diagnosis Hipertensi" in df.columns
+      else 0
+  )
+  st.markdown(
+      f"**1. Hipertensi: Penderita ({tot_ht:,}) vs Diberikan Diagnosis"
+      f" ({diag_ht:,})**"
+  )
+  sisa_diag_ht = max(0, tot_ht - diag_ht)
+  df_pie_diag_ht = pd.DataFrame(
+      {
+          "Status Diagnosis": [
+              "Diberikan Diagnosis",
+              "Belum/Tidak Diberikan Diagnosis",
+          ],
+          "Jumlah": [diag_ht, sisa_diag_ht],
+      }
+  )
+  fig_pie_diag_ht = px.pie(
+      df_pie_diag_ht,
+      names="Status Diagnosis",
+      values="Jumlah",
+      hole=0.4,
+      color_discrete_sequence=["#004c6d", "#c1f0f6"],
+  )
+  fig_pie_diag_ht.update_traces(textinfo="percent+value")
+  st.plotly_chart(fig_pie_diag_ht, use_container_width=True)
+
+  st.markdown("*Alasan Hipertensi Tidak Diberikan Diagnosis:*")
+  cols_als_diag_ht = [
+      c for c in df.columns if "Alasan Tidak Diberikan Diagnosis Hipertensi" in c
+  ]
+  if cols_als_diag_ht:
+    sum_als_diag_ht = df[cols_als_diag_ht].sum().reset_index()
+    sum_als_diag_ht.columns = ["Alasan", "Jumlah"]
+    sum_als_diag_ht["Alasan"] = sum_als_diag_ht["Alasan"].str.replace(
+        "Alasan Tidak Diberikan Diagnosis Hipertensi - ", ""
+    )
+    sum_als_diag_ht = sum_als_diag_ht[sum_als_diag_ht["Jumlah"] > 0]
+
+    if not sum_als_diag_ht.empty:
+      fig_als_diag_ht = px.bar(
+          sum_als_diag_ht,
+          x="Jumlah",
+          y="Alasan",
+          orientation="h",
+          text="Jumlah",
+          color="Jumlah",
+          color_continuous_scale="Purples",
+      )
+      fig_als_diag_ht.update_traces(
+          texttemplate="%{text:,}", textposition="outside"
+      )
+      fig_als_diag_ht.update_layout(
+          height=400, yaxis={"categoryorder": "total ascending"}
+      )
+      st.plotly_chart(fig_als_diag_ht, use_container_width=True)
+    else:
+      st.info("Tidak ada data alasan tidak diberikan diagnosis hipertensi.")
+
+  st.markdown("---")
+
+  # --- Diabetes: Diagnosis & Alasan ---
+  diag_dm = (
+      df["Diberikan Diagnosis"].sum()
+      if "Diberikan Diagnosis" in df.columns
+      else 0
+  )
+  st.markdown(
+      f"**2. Diabetes: Penderita ({tot_dm:,}) vs Diberikan Diagnosis"
+      f" ({diag_dm:,})**"
+  )
+  sisa_diag_dm = max(0, tot_dm - diag_dm)
+  df_pie_diag_dm = pd.DataFrame(
+      {
+          "Status Diagnosis": [
+              "Diberikan Diagnosis",
+              "Belum/Tidak Diberikan Diagnosis",
+          ],
+          "Jumlah": [diag_dm, sisa_diag_dm],
+      }
+  )
+  fig_pie_diag_dm = px.pie(
+      df_pie_diag_dm,
+      names="Status Diagnosis",
+      values="Jumlah",
+      hole=0.4,
+      color_discrete_sequence=["#38b000", "#ccff33"],
+  )
+  fig_pie_diag_dm.update_traces(textinfo="percent+value")
+  st.plotly_chart(fig_pie_diag_dm, use_container_width=True)
+
+  st.markdown("*Alasan Diabetes Tidak Diberikan Diagnosis:*")
+  cols_als_diag_dm = [
+      c for c in df.columns if "Alasan Tidak Diberikan Diagnosis Diabetes" in c
+  ]
+  if cols_als_diag_dm:
+    sum_als_diag_dm = df[cols_als_diag_dm].sum().reset_index()
+    sum_als_diag_dm.columns = ["Alasan", "Jumlah"]
+    sum_als_diag_dm["Alasan"] = sum_als_diag_dm["Alasan"].str.replace(
+        "Alasan Tidak Diberikan Diagnosis Diabetes - ", ""
+    )
+    sum_als_diag_dm = sum_als_diag_dm[sum_als_diag_dm["Jumlah"] > 0]
+
+    if not sum_als_diag_dm.empty:
+      fig_als_diag_dm = px.bar(
+          sum_als_diag_dm,
+          x="Jumlah",
+          y="Alasan",
+          orientation="h",
+          text="Jumlah",
+          color="Jumlah",
+          color_continuous_scale="YlGn",
+      )
+      fig_als_diag_dm.update_traces(
+          texttemplate="%{text:,}", textposition="outside"
+      )
+      fig_als_diag_dm.update_layout(
+          height=400, yaxis={"categoryorder": "total ascending"}
+      )
+      st.plotly_chart(fig_als_diag_dm, use_container_width=True)
+    else:
+      st.info("Tidak ada data alasan tidak diberikan diagnosis diabetes.")
+
+  # 6. Grafik Persentase / Prevalensi Kasus dari Jumlah yang Diskrining per Wilayah
+  st.subheader(
+      "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
+      " Wilayah"
+  )
+
   if (
       "Jumlah Orang Diperiksa Tekanan Darah" in df.columns
       and "Jumlah Penderita Hipertensi" in df.columns
@@ -193,12 +324,13 @@ if uploaded_file is not None:
 
   st.markdown("---")
 
-  # Menghitung persentase DM per wilayah
   if (
       "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df.columns
       and "Jumlah Penderita Diabetes" in df.columns
   ):
-    st.markdown("**Persentase Penderita Diabetes (%) dari Orang Diperiksa Gula Darah**")
+    st.markdown(
+        "**Persentase Penderita Diabetes (%) dari Orang Diperiksa Gula Darah**"
+    )
     df_pct_dm = (
         df.groupby(group_col)[
             [
@@ -232,7 +364,7 @@ if uploaded_file is not None:
     )
     st.plotly_chart(fig_pct_dm, use_container_width=True)
 
-  # 6. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
+  # 7. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
   st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
   col_pie1, col_pie2 = st.columns(2)
 
@@ -274,11 +406,13 @@ if uploaded_file is not None:
     fig_pie_dm.update_traces(textinfo="percent+value")
     st.plotly_chart(fig_pie_dm, use_container_width=True)
 
-  # 7. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
+  # 8. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
   st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
 
   st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
-  cols_alasan_ht = [c for c in df.columns if "Alasan Tidak Diberikan Obat Hipertensi" in c]
+  cols_alasan_ht = [
+      c for c in df.columns if "Alasan Tidak Diberikan Obat Hipertensi" in c
+  ]
   if cols_alasan_ht:
     sum_alasan_ht = df[cols_alasan_ht].sum().reset_index()
     sum_alasan_ht.columns = ["Alasan", "Jumlah"]
@@ -298,7 +432,9 @@ if uploaded_file is not None:
           color_continuous_scale="Reds",
       )
       fig_als_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_als_ht.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
+      fig_als_ht.update_layout(
+          height=400, yaxis={"categoryorder": "total ascending"}
+      )
       st.plotly_chart(fig_als_ht, use_container_width=True)
     else:
       st.info("Tidak ada data alasan tidak diberikan obat hipertensi.")
@@ -306,7 +442,9 @@ if uploaded_file is not None:
   st.markdown("---")
 
   st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
-  cols_alasan_dm = [c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c]
+  cols_alasan_dm = [
+      c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c
+  ]
   if cols_alasan_dm:
     sum_alasan_dm = df[cols_alasan_dm].sum().reset_index()
     sum_alasan_dm.columns = ["Alasan", "Jumlah"]
@@ -326,12 +464,14 @@ if uploaded_file is not None:
           color_continuous_scale="Oranges",
       )
       fig_als_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_als_dm.update_layout(height=400, yaxis={"categoryorder": "total ascending"})
+      fig_als_dm.update_layout(
+          height=400, yaxis={"categoryorder": "total ascending"}
+      )
       st.plotly_chart(fig_als_dm, use_container_width=True)
     else:
       st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
 
-  # 8. Tabel Detail Data
+  # 9. Tabel Detail Data
   st.subheader("📋 Tabel Data Detail")
   st.dataframe(df)
 
