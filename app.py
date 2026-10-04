@@ -9,7 +9,7 @@ st.set_page_config(
 
 st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
 st.write(
-    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan pengobatan, dan analisis alasan klinis."
+    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan pengobatan, prevalensi kasus, dan analisis alasan klinis."
 )
 
 # 1. Upload File Excel ASIK Kemenkes
@@ -115,11 +115,11 @@ if uploaded_file is not None:
         delta=f"{persen_dm:.1f}% dari penderita",
     )
 
-  # 4. Grafik Batang Bersusun (Hipertensi & Diabetes per Wilayah)
+  # 4. Grafik Batang Bersusun: Jumlah Kasus Absolut per Wilayah
   group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
 
   if "Jumlah Penderita Hipertensi" in df.columns:
-    st.subheader("📈 Grafik Penderita Hipertensi Berdasarkan Wilayah")
+    st.subheader("📈 Grafik Jumlah Penderita Hipertensi Berdasarkan Wilayah")
     chart_df_ht = (
         df.groupby(group_col)["Jumlah Penderita Hipertensi"].sum().reset_index()
     )
@@ -136,7 +136,7 @@ if uploaded_file is not None:
     st.plotly_chart(fig_bar_ht, use_container_width=True)
 
   if "Jumlah Penderita Diabetes" in df.columns:
-    st.subheader("📈 Grafik Penderita Diabetes Berdasarkan Wilayah")
+    st.subheader("📈 Grafik Jumlah Penderita Diabetes Berdasarkan Wilayah")
     chart_df_dm = (
         df.groupby(group_col)["Jumlah Penderita Diabetes"].sum().reset_index()
     )
@@ -152,7 +152,87 @@ if uploaded_file is not None:
     fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
     st.plotly_chart(fig_bar_dm, use_container_width=True)
 
-  # 5. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
+  # 5. BARu: Grafik Persentase / Prevalensi Kasus dari Jumlah yang Diskrining per Wilayah
+  st.subheader("📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per Wilayah")
+
+  # Menghitung persentase HT per wilayah
+  if (
+      "Jumlah Orang Diperiksa Tekanan Darah" in df.columns
+      and "Jumlah Penderita Hipertensi" in df.columns
+  ):
+    st.markdown("**Persentase Penderita Hipertensi (%) dari Orang Diperiksa TD**")
+    df_pct_ht = (
+        df.groupby(group_col)[
+            ["Jumlah Penderita Hipertensi", "Jumlah Orang Diperiksa Tekanan Darah"]
+        ]
+        .sum()
+        .reset_index()
+    )
+    df_pct_ht["Persentase HT"] = (
+        df_pct_ht["Jumlah Penderita Hipertensi"]
+        / df_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
+        * 100
+    ).fillna(0)
+
+    fig_pct_ht = px.bar(
+        df_pct_ht,
+        x=group_col,
+        y="Persentase HT",
+        text=df_pct_ht["Persentase HT"].apply(lambda x: f"{x:.1f}%"),
+        color="Persentase HT",
+        color_continuous_scale="Teal",
+    )
+    fig_pct_ht.update_traces(textposition="outside")
+    fig_pct_ht.update_layout(
+        xaxis_tickangle=-45,
+        height=450,
+        yaxis_title="Persentase (%)",
+        yaxis_ticksuffix="%",
+    )
+    st.plotly_chart(fig_pct_ht, use_container_width=True)
+
+  st.markdown("---")
+
+  # Menghitung persentase DM per wilayah
+  if (
+      "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df.columns
+      and "Jumlah Penderita Diabetes" in df.columns
+  ):
+    st.markdown("**Persentase Penderita Diabetes (%) dari Orang Diperiksa Gula Darah**")
+    df_pct_dm = (
+        df.groupby(group_col)[
+            [
+                "Jumlah Penderita Diabetes",
+                "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)",
+            ]
+        ]
+        .sum()
+        .reset_index()
+    )
+    df_pct_dm["Persentase DM"] = (
+        df_pct_dm["Jumlah Penderita Diabetes"]
+        / df_pct_dm["Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"]
+        * 100
+    ).fillna(0)
+
+    fig_pct_dm = px.bar(
+        df_pct_dm,
+        x=group_col,
+        y="Persentase DM",
+        text=df_pct_dm["Persentase DM"].apply(lambda x: f"{x:.1f}%"),
+        color="Persentase DM",
+        color_continuous_scale="YlOrRd",
+    )
+    fig_pct_dm.update_traces(textposition="outside")
+    fig_pct_dm.update_layout(
+        xaxis_tickangle=-45,
+        height=450,
+        yaxis_title="Persentase (%)",
+        yaxis_ticksuffix="%",
+    )
+    st.plotly_chart(fig_pct_dm, use_container_width=True)
+
+  # 6. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
   st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
   col_pie1, col_pie2 = st.columns(2)
 
@@ -194,7 +274,7 @@ if uploaded_file is not None:
     fig_pie_dm.update_traces(textinfo="percent+value")
     st.plotly_chart(fig_pie_dm, use_container_width=True)
 
-  # 6. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
+  # 7. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
   st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
 
   st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
@@ -251,7 +331,7 @@ if uploaded_file is not None:
     else:
       st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
 
-  # 7. Tabel Detail Data
+  # 8. Tabel Detail Data
   st.subheader("📋 Tabel Data Detail")
   st.dataframe(df)
 
