@@ -7,9 +7,9 @@ st.set_page_config(
     page_title="Dashboard Analisis CKG Kemenkes", page_icon="🏥", layout="wide"
 )
 
-st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
+st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG) HT dan DM")
 st.write(
-    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan diagnosis, pengobatan, prevalensi, dan analisis alasan klinis."
+    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan diagnosis, pengobatan, prevalensi, dan analisis alasan klinis (Khusus HT dan DM)."
 )
 
 # 1. Upload File Excel ASIK Kemenkes
