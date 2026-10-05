@@ -2,73 +2,41 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-
-# CSS agar seluruh dashboard dapat di-scroll dan ditangkap sebagai full-page screenshot
-st.markdown("""
-<style>
-/* Hilangkan batas tinggi/overflow pada area utama */
-html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
-    overflow: visible !important;
-}
-
-/* Pastikan area konten utama mengikuti seluruh tinggi isi */
-[data-testid="stAppViewContainer"] > .main {
-    overflow: visible !important;
-}
-
-[data-testid="stMainBlockContainer"] {
-    max-width: 100% !important;
-    overflow: visible !important;
-}
-
-/* Plotly tidak dipotong oleh parent container */
-[data-testid="stPlotlyChart"] {
-    overflow: visible !important;
-}
-
-/* Tabel tetap bisa melebar, tetapi tidak membuat halaman terpotong */
-[data-testid="stDataFrame"] {
-    width: 100% !important;
-}
-
-/* Jangan gunakan scroll horizontal/vertikal pada wrapper utama */
-section.main > div {
-    overflow: visible !important;
-}
-
-/* Beri ruang bawah agar screenshot sampai benar-benar ke akhir halaman */
-[data-testid="stMainBlockContainer"] {
-    padding-bottom: 80px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
 # Konfigurasi Halaman Web
 st.set_page_config(
     page_title="Dashboard Analisis CKG Kemenkes", page_icon="🏥", layout="wide"
 )
 
-st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG) HT dan DM")
+st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
 st.write(
-    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan diagnosis, pengobatan, prevalensi, dan analisis alasan klinis (Khusus HT dan DM)."
+    "Aplikasi portal monitoring data skrining CKG, cakupan diagnosis, pengobatan, dan analisis klinis instansi."
 )
 
-# 1. Upload File Excel ASIK Kemenkes
-uploaded_file = st.file_uploader(
-    "Upload file Excel laporan CKG Kemenkes (.xlsx)", type=["xlsx", "csv"]
-)
+# Nama file Excel yang otomatis dibaca dari GitHub
+EXCEL_FILE = "Tatalaksana Agregat 4 Prioritas-Januari-September-2026(6).xlsx"
 
-if uploaded_file is not None:
-  # Membaca file
+
+# Fungsi untuk memuat data secara otomatis
+@st.cache_data
+def load_data():
   try:
-    df = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
-  except:
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_excel(EXCEL_FILE, sheet_name="Data Agregat CKG")
+    return df
+  except Exception as e:
+    # Fallback jika nama file berbeda atau sheet berbeda
+    try:
+      df = pd.read_excel(EXCEL_FILE)
+      return df
+    except Exception as err:
+      return None
 
-  st.success("✅ Data berhasil dimuat!")
 
-  # 2. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes)
+df = load_data()
+
+if df is not None:
+  st.success("✅ Data berhasil dimuat secara otomatis dari sistem!")
+
+  # 1. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes)
   st.subheader("🔍 Filter Wilayah & Faskes")
 
   col_f1, col_f2, col_f3 = st.columns(3)
@@ -94,7 +62,7 @@ if uploaded_file is not None:
       if pilih_faskes != "Semua":
         df = df[df["Nama Faskes"] == pilih_faskes]
 
-  # 3. Metrik Ringkasan Utama
+  # 2. Metrik Ringkasan Utama
   st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
 
   col1, col2, col3, col4 = st.columns(4)
@@ -157,7 +125,7 @@ if uploaded_file is not None:
         delta=f"{persen_dm:.1f}% dari penderita",
     )
 
-  # 4. Grafik Batang Bersusun: Jumlah Kasus Absolut per Wilayah
+  # 3. Grafik Batang Absolut per Wilayah
   group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
 
   if "Jumlah Penderita Hipertensi" in df.columns:
@@ -194,10 +162,9 @@ if uploaded_file is not None:
     fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
     st.plotly_chart(fig_bar_dm, use_container_width=True)
 
-  # 5. BARU: Analisis Diagnosis (Penderita vs Diberikan Diagnosis) & Alasan Tidak Diberikan Diagnosis
+  # 4. Analisis Diagnosis (HT & DM)
   st.subheader("📋 Analisis Penegakan Diagnosis (HT & DM)")
 
-  # --- Hipertensi: Diagnosis & Alasan ---
   diag_ht = (
       df["Diagnosis Hipertensi"].sum()
       if "Diagnosis Hipertensi" in df.columns
@@ -261,7 +228,6 @@ if uploaded_file is not None:
 
   st.markdown("---")
 
-  # --- Diabetes: Diagnosis & Alasan ---
   diag_dm = (
       df["Diberikan Diagnosis"].sum()
       if "Diberikan Diagnosis" in df.columns
@@ -323,7 +289,7 @@ if uploaded_file is not None:
     else:
       st.info("Tidak ada data alasan tidak diberikan diagnosis diabetes.")
 
-  # 6. Grafik Persentase / Prevalensi Kasus dari Jumlah yang Diskrining per Wilayah
+  # 5. Grafik Prevalensi Persentase per Wilayah
   st.subheader(
       "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
       " Wilayah"
@@ -406,7 +372,7 @@ if uploaded_file is not None:
     )
     st.plotly_chart(fig_pct_dm, use_container_width=True)
 
-  # 7. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
+  # 6. Proporsi Pengobatan
   st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
   col_pie1, col_pie2 = st.columns(2)
 
@@ -448,7 +414,7 @@ if uploaded_file is not None:
     fig_pie_dm.update_traces(textinfo="percent+value")
     st.plotly_chart(fig_pie_dm, use_container_width=True)
 
-  # 8. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
+  # 7. Analisis Alasan Tidak Diberikan Obat
   st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
 
   st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
@@ -513,12 +479,13 @@ if uploaded_file is not None:
     else:
       st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
 
-  # 9. Tabel Detail Data
+  # 8. Tabel Detail Data
   st.subheader("📋 Tabel Data Detail")
   st.dataframe(df)
 
 else:
-  st.warning(
-      "Silakan upload file Excel laporan CKG Anda terlebih dahulu untuk"
-      " melihat dashboard."
+  st.error(
+      f"❌ File Excel '{EXCEL_FILE}' tidak ditemukan di repository GitHub Anda!"
+      " Pastikan nama file Excel sudah di-upload ke GitHub dan namanya sesuai"
+      " dengan yang ada di kode."
   )
