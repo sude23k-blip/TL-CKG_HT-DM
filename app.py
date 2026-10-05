@@ -7,36 +7,26 @@ st.set_page_config(
     page_title="Dashboard Analisis CKG Kemenkes", page_icon="🏥", layout="wide"
 )
 
-st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
+st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG) HT dan DM")
 st.write(
-    "Aplikasi portal monitoring data skrining CKG, cakupan diagnosis, pengobatan, dan analisis klinis instansi."
+    "Aplikasi interaktif untuk monitoring data skrining CKG, cakupan diagnosis, pengobatan, prevalensi, dan analisis alasan klinis (Khusus HT dan DM)."
 )
 
-# Nama file Excel yang otomatis dibaca dari GitHub
-EXCEL_FILE = "Tatalaksana Agregat 4 Prioritas-Januari-September-2026(6).xlsx"
+# 1. Upload File Excel ASIK Kemenkes
+uploaded_file = st.file_uploader(
+    "Upload file Excel laporan CKG Kemenkes (.xlsx)", type=["xlsx", "csv"]
+)
 
-
-# Fungsi untuk memuat data secara otomatis
-@st.cache_data
-def load_data():
+if uploaded_file is not None:
+  # Membaca file
   try:
-    df = pd.read_excel(EXCEL_FILE, sheet_name="Data Agregat CKG")
-    return df
-  except Exception as e:
-    # Fallback jika nama file berbeda atau sheet berbeda
-    try:
-      df = pd.read_excel(EXCEL_FILE)
-      return df
-    except Exception as err:
-      return None
+    df = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
+  except:
+    df = pd.read_excel(uploaded_file)
 
+  st.success("✅ Data berhasil dimuat!")
 
-df = load_data()
-
-if df is not None:
-  st.success("✅ Data berhasil dimuat secara otomatis dari sistem!")
-
-  # 1. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes)
+  # 2. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes)
   st.subheader("🔍 Filter Wilayah & Faskes")
 
   col_f1, col_f2, col_f3 = st.columns(3)
@@ -62,7 +52,7 @@ if df is not None:
       if pilih_faskes != "Semua":
         df = df[df["Nama Faskes"] == pilih_faskes]
 
-  # 2. Metrik Ringkasan Utama
+  # 3. Metrik Ringkasan Utama
   st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
 
   col1, col2, col3, col4 = st.columns(4)
@@ -125,7 +115,7 @@ if df is not None:
         delta=f"{persen_dm:.1f}% dari penderita",
     )
 
-  # 3. Grafik Batang Absolut per Wilayah
+  # 4. Grafik Batang Bersusun: Jumlah Kasus Absolut per Wilayah
   group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
 
   if "Jumlah Penderita Hipertensi" in df.columns:
@@ -162,9 +152,10 @@ if df is not None:
     fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
     st.plotly_chart(fig_bar_dm, use_container_width=True)
 
-  # 4. Analisis Diagnosis (HT & DM)
+  # 5. BARU: Analisis Diagnosis (Penderita vs Diberikan Diagnosis) & Alasan Tidak Diberikan Diagnosis
   st.subheader("📋 Analisis Penegakan Diagnosis (HT & DM)")
 
+  # --- Hipertensi: Diagnosis & Alasan ---
   diag_ht = (
       df["Diagnosis Hipertensi"].sum()
       if "Diagnosis Hipertensi" in df.columns
@@ -228,6 +219,7 @@ if df is not None:
 
   st.markdown("---")
 
+  # --- Diabetes: Diagnosis & Alasan ---
   diag_dm = (
       df["Diberikan Diagnosis"].sum()
       if "Diberikan Diagnosis" in df.columns
@@ -289,7 +281,7 @@ if df is not None:
     else:
       st.info("Tidak ada data alasan tidak diberikan diagnosis diabetes.")
 
-  # 5. Grafik Prevalensi Persentase per Wilayah
+  # 6. Grafik Persentase / Prevalensi Kasus dari Jumlah yang Diskrining per Wilayah
   st.subheader(
       "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
       " Wilayah"
@@ -372,7 +364,7 @@ if df is not None:
     )
     st.plotly_chart(fig_pct_dm, use_container_width=True)
 
-  # 6. Proporsi Pengobatan
+  # 7. Grafik Lingkaran (Pie Chart) Perbandingan Pengobatan HT & DM
   st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
   col_pie1, col_pie2 = st.columns(2)
 
@@ -414,7 +406,7 @@ if df is not None:
     fig_pie_dm.update_traces(textinfo="percent+value")
     st.plotly_chart(fig_pie_dm, use_container_width=True)
 
-  # 7. Analisis Alasan Tidak Diberikan Obat
+  # 8. Grafik Alasan Tidak Diberikan Obat Bersusun Kebawah (HT & DM)
   st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
 
   st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
@@ -479,13 +471,12 @@ if df is not None:
     else:
       st.info("Tidak ada data alasan tidak diberikan obat diabetes.")
 
-  # 8. Tabel Detail Data
+  # 9. Tabel Detail Data
   st.subheader("📋 Tabel Data Detail")
   st.dataframe(df)
 
 else:
-  st.error(
-      f"❌ File Excel '{EXCEL_FILE}' tidak ditemukan di repository GitHub Anda!"
-      " Pastikan nama file Excel sudah di-upload ke GitHub dan namanya sesuai"
-      " dengan yang ada di kode."
+  st.warning(
+      "Silakan upload file Excel laporan CKG Anda terlebih dahulu untuk"
+      " melihat dashboard."
   )
