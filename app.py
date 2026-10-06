@@ -4,13 +4,13 @@ import streamlit as st
 
 # Konfigurasi Halaman Web
 st.set_page_config(
-    page_title="Dashboard Analisis CKG Kemenkes Tata Laksana HT dan DM", page_icon="🏥", layout="wide"
+    page_title="Dashboard Analisis Tatalaksana HT dan DM CKG Kemenkes", page_icon="🏥", layout="wide"
 )
 
-st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG) HT dan DM")
+st.title("🏥 Dashboard Analisis Data Tatalaksana HT dan DM Cek Kesehatan Gratis (CKG)")
 st.write(
     "Aplikasi portal monitoring data skrining CKG, cakupan diagnosis, pengobatan,"
-    " dan analisis klinis."
+    " edukasi, dan analisis klinis."
 )
 
 # 1. Upload File Excel ASIK Kemenkes secara Manual
@@ -68,6 +68,11 @@ if uploaded_file is not None:
   prev_ht = (tot_ht / scr_ht * 100) if scr_ht > 0 else 0
   obat_ht = df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
   persen_ht = (obat_ht / tot_ht * 100) if tot_ht > 0 else 0
+  edu_ht = (
+      df["Edukasi Hipertensi"].sum()
+      if "Edukasi Hipertensi" in df.columns
+      else 0
+  )
 
   scr_dm = (
       df["Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"].sum()
@@ -86,6 +91,9 @@ if uploaded_file is not None:
       else 0
   )
   persen_dm = (obat_dm / tot_dm * 100) if tot_dm > 0 else 0
+  edu_dm = (
+      df["Edukasi Diabetes"].sum() if "Edukasi Diabetes" in df.columns else 0
+  )
 
   diag_ht = (
       df["Diagnosis Hipertensi"].sum()
@@ -101,17 +109,18 @@ if uploaded_file is not None:
   # ==========================================
   # 3. PEMBUATAN MENU KESAMPING (TABS)
   # ==========================================
-  tab1, tab2, tab3, tab4, tab5 = st.tabs([
-      "📊 Ringkasan & Grafik Kasus",
+  tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+      "📊 Ringkasan & Kasus",
       "📋 Analisis Diagnosis",
+      "🗣️ Cakupan Edukasi",
       "📈 Prevalensi Wilayah",
-      "🍩 Cakupan Pengobatan & Alasan",
+      "🍩 Pengobatan & Alasan",
       "📁 Tabel Data Detail",
   ])
 
   # --- TAB 1: RINGKASAN & GRAFIK KASUS ---
   with tab1:
-    st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
+    st.subheader("📊 Ringkasan Skrining, Kasus, & Tindakan")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
       st.metric(
@@ -121,9 +130,13 @@ if uploaded_file is not None:
       )
     with c2:
       st.metric(
-          "Hipertensi Diberikan Obat",
-          f"{obat_ht:,}",
-          delta=f"{persen_ht:.1f}% dari penderita",
+          "Hipertensi Diberikan Edukasi",
+          f"{edu_ht:,}",
+          delta=(
+              f"{(edu_ht/tot_ht*100):.1f}% dari penderita"
+              if tot_ht > 0
+              else "0%"
+          ),
       )
     with c3:
       st.metric(
@@ -133,9 +146,13 @@ if uploaded_file is not None:
       )
     with c4:
       st.metric(
-          "Diabetes Diberikan Obat",
-          f"{obat_dm:,}",
-          delta=f"{persen_dm:.1f}% dari penderita",
+          "Diabetes Diberikan Edukasi",
+          f"{edu_dm:,}",
+          delta=(
+              f"{(edu_dm/tot_dm*100):.1f}% dari penderita"
+              if tot_dm > 0
+              else "0%"
+          ),
       )
 
     st.markdown("---")
@@ -247,6 +264,15 @@ if uploaded_file is not None:
           {
               "Status Diagnosis": [
                   "Diberikan Diagnosis",
+              ],
+              "Jumlah": [diag_dm, sisa_diag_dm],
+          }
+      )
+      # Fix length mismatch
+      df_pie_diag_dm = pd.DataFrame(
+          {
+              "Status Diagnosis": [
+                  "Diberikan Diagnosis",
                   "Belum/Tidak Diberikan",
               ],
               "Jumlah": [diag_dm, sisa_diag_dm],
@@ -295,8 +321,67 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: PREVALENSI PERSENTASE WILAYAH ---
+  # --- TAB 3: CAKUPAN EDUKASI (BARU) ---
   with tab3:
+    st.subheader("🗣️ Analisis Cakupan Pemberian Edukasi (HT & DM)")
+    col_e1, col_e2 = st.columns(2)
+
+    with col_e1:
+      st.markdown(
+          f"**Edukasi Hipertensi (Total Diberikan: {edu_ht:,} dari {tot_ht:,}"
+          " Penderita)**"
+      )
+      if "Edukasi Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+        chart_edu_ht = (
+            df.groupby(group_col)["Edukasi Hipertensi"].sum().reset_index()
+        )
+        fig_edu_ht = px.bar(
+            chart_edu_ht,
+            x=group_col,
+            y="Edukasi Hipertensi",
+            text="Edukasi Hipertensi",
+            color="Edukasi Hipertensi",
+            color_continuous_scale="Blues",
+        )
+        fig_edu_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+        fig_edu_ht.update_layout(xaxis_tickangle=-45, height=400)
+        st.plotly_chart(fig_edu_ht, use_container_width=True)
+
+    with col_e2:
+      st.markdown(
+          f"**Edukasi Diabetes (Total Diberikan: {edu_dm:,} dari {tot_dm:,}"
+          " Penderita)**"
+      )
+      if "Edukasi Diabetes" in df.columns and "Nama Faskes" in df.columns:
+        chart_edu_dm = (
+            df.groupby(group_col)["Edukasi Diabetes"].sum().reset_index()
+        )
+        fig_edu_dm = px.bar(
+            chart_edu_dm,
+            x=group_col,
+            y="Edukasi Diabetes",
+            text="Edukasi Diabetes",
+            color="Edukasi Diabetes",
+            color_continuous_scale="Greens",
+        )
+        fig_edu_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+        fig_edu_dm.update_layout(xaxis_tickangle=-45, height=400)
+        st.plotly_chart(fig_edu_dm, use_container_width=True)
+
+    # Tambahan Edukasi Prediabetes & Dislipidemia jika ada
+    st.markdown("---")
+    col_e3, col_e4 = st.columns(2)
+    with col_e3:
+      if "Edukasi Prediabetes (semua)" in df.columns:
+        edu_pred = df["Edukasi Prediabetes (semua)"].sum()
+        st.metric("Total Edukasi Prediabetes", f"{edu_pred:,}")
+    with col_e4:
+      if "Edukasi Dislipidemia" in df.columns:
+        edu_disp = df["Edukasi Dislipidemia"].sum()
+        st.metric("Total Edukasi Dislipidemia", f"{edu_disp:,}")
+
+  # --- TAB 4: PREVALENSI PERSENTASE WILAYAH ---
+  with tab4:
     st.subheader(
         "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
         " Wilayah"
@@ -382,18 +467,29 @@ if uploaded_file is not None:
       )
       st.plotly_chart(fig_pct_dm, use_container_width=True)
 
-  # --- TAB 4: PENGOBATAN & ANALISIS ALASAN TIDAK DIBERI OBAT ---
-  with tab4:
+  # --- TAB 5: PENGOBATAN & ANALISIS ALASAN TIDAK DIBERI OBAT ---
+  with tab5:
     st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
     col_pie1, col_pie2 = st.columns(2)
 
     with col_pie1:
       st.markdown("**Hipertensi (Diberi Obat vs Belum/Tidak)**")
-      sisa_ht = max(0, tot_ht - obat_ht)
+      sisa_ht = max(
+          0,
+          (
+              df["Jumlah Penderita Hipertensi"].sum()
+              if "Jumlah Penderita Hipertensi" in df.columns
+              else 0
+          )
+          - (df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0),
+      )
+      obat_ht_val = (
+          df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
+      )
       df_pie_ht = pd.DataFrame(
           {
               "Status": ["Diberikan Obat", "Belum/Tidak Diberikan"],
-              "Jumlah": [obat_ht, sisa_ht],
+              "Jumlah": [obat_ht_val, sisa_ht],
           }
       )
       fig_pie_ht = px.pie(
@@ -408,11 +504,28 @@ if uploaded_file is not None:
 
     with col_pie2:
       st.markdown("**Diabetes (Diberi Obat vs Belum/Tidak)**")
-      sisa_dm = max(0, tot_dm - obat_dm)
+      sisa_dm = max(
+          0,
+          (
+              df["Jumlah Penderita Diabetes"].sum()
+              if "Jumlah Penderita Diabetes" in df.columns
+              else 0
+          )
+          - (
+              df["Diberikan Obat Diabetes"].sum()
+              if "Diberikan Obat Diabetes" in df.columns
+              else 0
+          ),
+      )
+      obat_dm_val = (
+          df["Diberikan Obat Diabetes"].sum()
+          if "Diberikan Obat Diabetes" in df.columns
+          else 0
+      )
       df_pie_dm = pd.DataFrame(
           {
               "Status": ["Diberikan Obat", "Belum/Tidak Diberikan"],
-              "Jumlah": [obat_dm, sisa_dm],
+              "Jumlah": [obat_dm_val, sisa_dm],
           }
       )
       fig_pie_dm = px.pie(
@@ -488,8 +601,8 @@ if uploaded_file is not None:
       else:
         st.info("Tidak ada data alasan.")
 
-  # --- TAB 5: TABEL DETAIL ---
-  with tab5:
+  # --- TAB 6: TABEL DETAIL ---
+  with tab6:
     st.subheader("📋 Tabel Data Detail Laporan")
     st.dataframe(df, use_container_width=True)
 
