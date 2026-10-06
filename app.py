@@ -767,7 +767,7 @@ if uploaded_file is not None:
   # --- TAB 5: CAKUPAN PENGOBATAN & ALASAN ---
   with tab5:
     st.subheader(
-        "🍩 Proporsi & Persentase Cakupan Pengobatan Penderita Per Puskesmas"
+        "💊 Proporsi & Persentase Cakupan Pengobatan Penderita Per Puskesmas"
     )
     col_pie1, col_pie2 = st.columns(2)
 
