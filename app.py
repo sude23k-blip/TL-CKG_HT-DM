@@ -127,7 +127,7 @@ if uploaded_file is not None:
       "📋 Analisis Diagnosis",
       "🗣️ Cakupan Edukasi",
       "📈 Prevalensi Wilayah",
-      "🍩 Cakupan Pengobatan & Alasan",
+      "💊 Cakupan Pengobatan & Alasan",
       "📁 Tabel Data Detail",
   ])
 
