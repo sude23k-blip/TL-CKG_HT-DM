@@ -4,13 +4,15 @@ import streamlit as st
 
 # Konfigurasi Halaman Web (Layout Wide agar leluasa)
 st.set_page_config(
-    page_title="Dashboard Analisis Tata Laksana HT dan DM CKG Dinkes Pangkep", page_icon="🏥", layout="wide"
+    page_title="Dashboard Analisis Tata Laksana HT dan DM CKG Dinkes Pangkep",
+    page_icon="🏥",
+    layout="wide",
 )
 
 st.title("🏥 Dashboard Analisis Data Tata Laksana HT dan DM CKG Dinkes Pangkep")
 st.write(
     "Aplikasi portal monitoring data skrining CKG, cakupan diagnosis, pengobatan,"
-    " dan analisis klinis."
+    " edukasi, dan analisis klinis."
 )
 
 # 1. Upload File Excel ASIK Kemenkes
@@ -68,6 +70,11 @@ if uploaded_file is not None:
   prev_ht = (tot_ht / scr_ht * 100) if scr_ht > 0 else 0
   obat_ht = df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
   persen_ht = (obat_ht / tot_ht * 100) if tot_ht > 0 else 0
+  edu_ht = (
+      df["Edukasi Hipertensi"].sum()
+      if "Edukasi Hipertensi" in df.columns
+      else 0
+  )
 
   scr_dm = (
       df["Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"].sum()
@@ -86,6 +93,9 @@ if uploaded_file is not None:
       else 0
   )
   persen_dm = (obat_dm / tot_dm * 100) if tot_dm > 0 else 0
+  edu_dm = (
+      df["Edukasi Diabetes"].sum() if "Edukasi Diabetes" in df.columns else 0
+  )
 
   diag_ht = (
       df["Diagnosis Hipertensi"].sum()
@@ -101,9 +111,10 @@ if uploaded_file is not None:
   # ==========================================
   # 3. PEMBUATAN MENU KESAMPING (TABS)
   # ==========================================
-  tab1, tab2, tab3, tab4, tab5 = st.tabs([
-      "📊 Ringkasan & Grafik Kasus",
+  tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+      "📊 Ringkasan & Kasus",
       "📋 Analisis Diagnosis",
+      "🗣️ Cakupan Edukasi",
       "📈 Prevalensi Wilayah",
       "🍩 Cakupan Pengobatan & Alasan",
       "📁 Tabel Data Detail",
@@ -295,8 +306,55 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: PREVALENSI PERSENTASE WILAYAH ---
+  # --- TAB 3: CAKUPAN EDUKASI ---
   with tab3:
+    st.subheader("🗣️ Analisis Cakupan Pemberian Edukasi (HT & DM)")
+    col_e1, col_e2 = st.columns(2)
+
+    with col_e1:
+      st.markdown(
+          f"**Edukasi Hipertensi (Total Diberikan: {edu_ht:,} dari {tot_ht:,}"
+          " Penderita)**"
+      )
+      if "Edukasi Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+        chart_edu_ht = (
+            df.groupby(group_col)["Edukasi Hipertensi"].sum().reset_index()
+        )
+        fig_edu_ht = px.bar(
+            chart_edu_ht,
+            x=group_col,
+            y="Edukasi Hipertensi",
+            text="Edukasi Hipertensi",
+            color="Edukasi Hipertensi",
+            color_continuous_scale="Blues",
+        )
+        fig_edu_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+        fig_edu_ht.update_layout(xaxis_tickangle=-45, height=400)
+        st.plotly_chart(fig_edu_ht, use_container_width=True)
+
+    with col_e2:
+      st.markdown(
+          f"**Edukasi Diabetes (Total Diberikan: {edu_dm:,} dari {tot_dm:,}"
+          " Penderita)**"
+      )
+      if "Edukasi Diabetes" in df.columns and "Nama Faskes" in df.columns:
+        chart_edu_dm = (
+            df.groupby(group_col)["Edukasi Diabetes"].sum().reset_index()
+        )
+        fig_edu_dm = px.bar(
+            chart_edu_dm,
+            x=group_col,
+            y="Edukasi Diabetes",
+            text="Edukasi Diabetes",
+            color="Edukasi Diabetes",
+            color_continuous_scale="Greens",
+        )
+        fig_edu_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+        fig_edu_dm.update_layout(xaxis_tickangle=-45, height=400)
+        st.plotly_chart(fig_edu_dm, use_container_width=True)
+
+  # --- TAB 4: PREVALENSI PERSENTASE WILAYAH ---
+  with tab4:
     st.subheader(
         "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
         " Wilayah"
@@ -382,8 +440,8 @@ if uploaded_file is not None:
       )
       st.plotly_chart(fig_pct_dm, use_container_width=True)
 
-  # --- TAB 4: PENGOBATAN & ANALISIS ALASAN TIDAK DIBERI OBAT ---
-  with tab4:
+  # --- TAB 5: PENGOBATAN & ANALISIS ALASAN TIDAK DIBERI OBAT ---
+  with tab5:
     st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
     col_pie1, col_pie2 = st.columns(2)
 
@@ -488,8 +546,8 @@ if uploaded_file is not None:
       else:
         st.info("Tidak ada data alasan.")
 
-  # --- TAB 5: TABEL DETAIL ---
-  with tab5:
+  # --- TAB 6: TABEL DETAIL ---
+  with tab6:
     st.subheader("📋 Tabel Data Detail Laporan")
     st.dataframe(df, use_container_width=True)
 
