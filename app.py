@@ -162,12 +162,14 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
+    # Grafik Penderita HT Berdasarkan Kecamatan (Urut Tertinggi ke Terendah)
     if "Jumlah Penderita Hipertensi" in df.columns and "Nama Kecamatan" in df.columns:
       st.subheader("📈 Grafik Penderita Hipertensi Berdasarkan Kecamatan")
       chart_kec_ht = (
           df.groupby("Nama Kecamatan")["Jumlah Penderita Hipertensi"]
           .sum()
           .reset_index()
+          .sort_values(by="Jumlah Penderita Hipertensi", ascending=False)
       )
       fig_kec_ht = px.bar(
           chart_kec_ht,
@@ -178,15 +180,21 @@ if uploaded_file is not None:
           color_continuous_scale="Blues",
       )
       fig_kec_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_kec_ht.update_layout(xaxis_tickangle=-45, height=400)
+      fig_kec_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=400,
+          xaxis={"categoryorder": "total descending"},
+      )
       st.plotly_chart(fig_kec_ht, use_container_width=True)
 
+    # Grafik Rinci HT Per PKM (Urut Tertinggi ke Terendah)
     if "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.subheader("🏥 Grafik Rinci Penderita Hipertensi Per Puskesmas (PKM)")
       chart_pkm_ht = (
           df.groupby("Nama Faskes")["Jumlah Penderita Hipertensi"]
           .sum()
           .reset_index()
+          .sort_values(by="Jumlah Penderita Hipertensi", ascending=False)
       )
       fig_pkm_ht = px.bar(
           chart_pkm_ht,
@@ -197,15 +205,23 @@ if uploaded_file is not None:
           color_continuous_scale="PuBu",
       )
       fig_pkm_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_pkm_ht.update_layout(xaxis_tickangle=-45, height=450)
+      fig_pkm_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          xaxis={"categoryorder": "total descending"},
+      )
       st.plotly_chart(fig_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
+    # Grafik Rinci DM Per PKM (Urut Tertinggi ke Terendah)
     if "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
       st.subheader("🏥 Grafik Rinci Penderita Diabetes Per Puskesmas (PKM)")
       chart_pkm_dm = (
-          df.groupby("Nama Faskes")["Jumlah Penderita Diabetes"].sum().reset_index()
+          df.groupby("Nama Faskes")["Jumlah Penderita Diabetes"]
+          .sum()
+          .reset_index()
+          .sort_values(by="Jumlah Penderita Diabetes", ascending=False)
       )
       fig_pkm_dm = px.bar(
           chart_pkm_dm,
@@ -216,7 +232,11 @@ if uploaded_file is not None:
           color_continuous_scale="Greens",
       )
       fig_pkm_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_pkm_dm.update_layout(xaxis_tickangle=-45, height=450)
+      fig_pkm_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          xaxis={"categoryorder": "total descending"},
+      )
       st.plotly_chart(fig_pkm_dm, use_container_width=True)
 
   # --- TAB 2: ANALISIS DIAGNOSIS ---
@@ -281,6 +301,7 @@ if uploaded_file is not None:
         "📊 Grafik Persentase Diagnosis (%) dari Total Penderita Per Puskesmas"
     )
 
+    # Persentase Diagnosis HT Per PKM (Urut Tertinggi ke Terendah)
     if "Diagnosis Hipertensi" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Diagnosis Hipertensi (%) Per Puskesmas**")
       df_diag_pkm_ht = (
@@ -295,6 +316,9 @@ if uploaded_file is not None:
           / df_diag_pkm_ht["Jumlah Penderita Hipertensi"]
           * 100
       ).fillna(0)
+      df_diag_pkm_ht = df_diag_pkm_ht.sort_values(
+          by="Persentase Diag HT", ascending=False
+      )
 
       fig_diag_pkm_ht = px.bar(
           df_diag_pkm_ht,
@@ -310,11 +334,13 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_diag_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
+    # Persentase Diagnosis DM Per PKM (Urut Tertinggi ke Terendah)
     if "Diberikan Diagnosis" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Diagnosis Diabetes (%) Per Puskesmas**")
       df_diag_pkm_dm = (
@@ -329,6 +355,9 @@ if uploaded_file is not None:
           / df_diag_pkm_dm["Jumlah Penderita Diabetes"]
           * 100
       ).fillna(0)
+      df_diag_pkm_dm = df_diag_pkm_dm.sort_values(
+          by="Persentase Diag DM", ascending=False
+      )
 
       fig_diag_pkm_dm = px.bar(
           df_diag_pkm_dm,
@@ -344,6 +373,7 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_diag_pkm_dm, use_container_width=True)
 
@@ -441,6 +471,7 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
+    # Persentase Edukasi HT Per PKM (Urut Tertinggi ke Terendah)
     if (
         "Edukasi Hipertensi" in df.columns
         and "Jumlah Penderita Hipertensi" in df.columns
@@ -461,6 +492,9 @@ if uploaded_file is not None:
           / df_edu_pkm_ht["Jumlah Penderita Hipertensi"]
           * 100
       ).fillna(0)
+      df_edu_pkm_ht = df_edu_pkm_ht.sort_values(
+          by="Persentase Edukasi HT", ascending=False
+      )
 
       fig_edu_pkm_ht = px.bar(
           df_edu_pkm_ht,
@@ -478,11 +512,13 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_edu_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
+    # Persentase Edukasi DM Per PKM (Urut Tertinggi ke Terendah)
     if (
         "Edukasi Diabetes" in df.columns
         and "Jumlah Penderita Diabetes" in df.columns
@@ -503,6 +539,9 @@ if uploaded_file is not None:
           / df_edu_pkm_dm["Jumlah Penderita Diabetes"]
           * 100
       ).fillna(0)
+      df_edu_pkm_dm = df_edu_pkm_dm.sort_values(
+          by="Persentase Edukasi DM", ascending=False
+      )
 
       fig_edu_pkm_dm = px.bar(
           df_edu_pkm_dm,
@@ -520,6 +559,7 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_edu_pkm_dm, use_container_width=True)
 
@@ -530,7 +570,7 @@ if uploaded_file is not None:
         " & Per Puskesmas)"
     )
 
-    # 1. Prevalensi Hipertensi per Kecamatan (Menggunakan df_original agar tampil lengkap)
+    # 1. Prevalensi Hipertensi per Kecamatan (Urut Tertinggi ke Terendah)
     if (
         "Jumlah Orang Diperiksa Tekanan Darah" in df_original.columns
         and "Jumlah Penderita Hipertensi" in df_original.columns
@@ -554,6 +594,9 @@ if uploaded_file is not None:
           / df_kec_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
           * 100
       ).fillna(0)
+      df_kec_pct_ht = df_kec_pct_ht.sort_values(
+          by="Persentase HT", ascending=False
+      )
 
       fig_kec_pct_ht = px.bar(
           df_kec_pct_ht,
@@ -569,12 +612,13 @@ if uploaded_file is not None:
           height=420,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_kec_pct_ht, use_container_width=True)
 
     st.markdown("---")
 
-    # 2. Prevalensi Hipertensi per Puskesmas (PKM)
+    # 2. Prevalensi Hipertensi per Puskesmas (PKM) (Urut Tertinggi ke Terendah)
     if (
         "Jumlah Orang Diperiksa Tekanan Darah" in df.columns
         and "Jumlah Penderita Hipertensi" in df.columns
@@ -598,6 +642,9 @@ if uploaded_file is not None:
           / df_pkm_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
           * 100
       ).fillna(0)
+      df_pkm_pct_ht = df_pkm_pct_ht.sort_values(
+          by="Persentase HT", ascending=False
+      )
 
       fig_pkm_pct_ht = px.bar(
           df_pkm_pct_ht,
@@ -613,12 +660,13 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_pkm_pct_ht, use_container_width=True)
 
     st.markdown("---")
 
-    # 3. Prevalensi Diabetes per Kecamatan (Menggunakan df_original)
+    # 3. Prevalensi Diabetes per Kecamatan (Urut Tertinggi ke Terendah)
     if (
         "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df_original.columns
         and "Jumlah Penderita Diabetes" in df_original.columns
@@ -644,6 +692,9 @@ if uploaded_file is not None:
           ]
           * 100
       ).fillna(0)
+      df_kec_pct_dm = df_kec_pct_dm.sort_values(
+          by="Persentase DM", ascending=False
+      )
 
       fig_kec_pct_dm = px.bar(
           df_kec_pct_dm,
@@ -659,12 +710,13 @@ if uploaded_file is not None:
           height=420,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_kec_pct_dm, use_container_width=True)
 
     st.markdown("---")
 
-    # 4. Prevalensi Diabetes per Puskesmas (PKM)
+    # 4. Prevalensi Diabetes per Puskesmas (PKM) (Urut Tertinggi ke Terendah)
     if (
         "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df.columns
         and "Jumlah Penderita Diabetes" in df.columns
@@ -690,6 +742,9 @@ if uploaded_file is not None:
           ]
           * 100
       ).fillna(0)
+      df_pkm_pct_dm = df_pkm_pct_dm.sort_values(
+          by="Persentase DM", ascending=False
+      )
 
       fig_pkm_pct_dm = px.bar(
           df_pkm_pct_dm,
@@ -705,6 +760,7 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_pkm_pct_dm, use_container_width=True)
 
@@ -759,6 +815,7 @@ if uploaded_file is not None:
         " Puskesmas"
     )
 
+    # Persentase Pengobatan HT Per PKM (Urut Tertinggi ke Terendah)
     if "Diberikan Obat" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Pengobatan Hipertensi (%) Per Puskesmas**")
       df_obat_pkm_ht = (
@@ -773,6 +830,9 @@ if uploaded_file is not None:
           / df_obat_pkm_ht["Jumlah Penderita Hipertensi"]
           * 100
       ).fillna(0)
+      df_obat_pkm_ht = df_obat_pkm_ht.sort_values(
+          by="Persentase Obat HT", ascending=False
+      )
 
       fig_obat_pkm_ht = px.bar(
           df_obat_pkm_ht,
@@ -790,11 +850,13 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_obat_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
+    # Persentase Pengobatan DM Per PKM (Urut Tertinggi ke Terendah)
     if "Diberikan Obat Diabetes" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Pengobatan Diabetes (%) Per Puskesmas**")
       df_obat_pkm_dm = (
@@ -809,6 +871,9 @@ if uploaded_file is not None:
           / df_obat_pkm_dm["Jumlah Penderita Diabetes"]
           * 100
       ).fillna(0)
+      df_obat_pkm_dm = df_obat_pkm_dm.sort_values(
+          by="Persentase Obat DM", ascending=False
+      )
 
       fig_obat_pkm_dm = px.bar(
           df_obat_pkm_dm,
@@ -826,6 +891,7 @@ if uploaded_file is not None:
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
+          xaxis={"categoryorder": "total descending"},
       )
       st.plotly_chart(fig_obat_pkm_dm, use_container_width=True)
 
