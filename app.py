@@ -110,8 +110,6 @@ if uploaded_file is not None:
       df["Diberikan Diagnosis"].sum() if "Diberikan Diagnosis" in df.columns else 0
   )
 
-  group_col = "Nama Faskes" if pilih_kec != "Semua" else "Nama Kecamatan"
-
   # ==========================================
   # 3. PEMBUATAN MENU KESAMPING (TABS)
   # ==========================================
@@ -155,43 +153,68 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    if "Jumlah Penderita Hipertensi" in df.columns:
-      st.subheader("📈 Grafik Jumlah Penderita Hipertensi per Wilayah")
-      chart_df_ht = (
-          df.groupby(group_col)["Jumlah Penderita Hipertensi"].sum().reset_index()
+    if "Jumlah Penderita Hipertensi" in df.columns and "Nama Kecamatan" in df.columns:
+      st.subheader("📈 Grafik Penderita Hipertensi Berdasarkan Kecamatan")
+      chart_kec_ht = (
+          df.groupby("Nama Kecamatan")["Jumlah Penderita Hipertensi"]
+          .sum()
+          .reset_index()
       )
-      fig_bar_ht = px.bar(
-          chart_df_ht,
-          x=group_col,
+      fig_kec_ht = px.bar(
+          chart_kec_ht,
+          x="Nama Kecamatan",
           y="Jumlah Penderita Hipertensi",
           text="Jumlah Penderita Hipertensi",
           color="Jumlah Penderita Hipertensi",
           color_continuous_scale="Blues",
       )
-      fig_bar_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_bar_ht.update_layout(xaxis_tickangle=-45, height=450)
-      st.plotly_chart(fig_bar_ht, use_container_width=True)
+      fig_kec_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_kec_ht.update_layout(xaxis_tickangle=-45, height=400)
+      st.plotly_chart(fig_kec_ht, use_container_width=True)
 
-    if "Jumlah Penderita Diabetes" in df.columns:
-      st.subheader("📈 Grafik Jumlah Penderita Diabetes per Wilayah")
-      chart_df_dm = (
-          df.groupby(group_col)["Jumlah Penderita Diabetes"].sum().reset_index()
+    if "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+      st.subheader("🏥 Grafik Rinci Penderita Hipertensi Per Puskesmas (PKM)")
+      chart_pkm_ht = (
+          df.groupby("Nama Faskes")["Jumlah Penderita Hipertensi"]
+          .sum()
+          .reset_index()
       )
-      fig_bar_dm = px.bar(
-          chart_df_dm,
-          x=group_col,
+      fig_pkm_ht = px.bar(
+          chart_pkm_ht,
+          x="Nama Faskes",
+          y="Jumlah Penderita Hipertensi",
+          text="Jumlah Penderita Hipertensi",
+          color="Jumlah Penderita Hipertensi",
+          color_continuous_scale="PuBu",
+      )
+      fig_pkm_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_pkm_ht.update_layout(xaxis_tickangle=-45, height=450)
+      st.plotly_chart(fig_pkm_ht, use_container_width=True)
+
+    st.markdown("---")
+
+    if "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
+      st.subheader("🏥 Grafik Rinci Penderita Diabetes Per Puskesmas (PKM)")
+      chart_pkm_dm = (
+          df.groupby("Nama Faskes")["Jumlah Penderita Diabetes"].sum().reset_index()
+      )
+      fig_pkm_dm = px.bar(
+          chart_pkm_dm,
+          x="Nama Faskes",
           y="Jumlah Penderita Diabetes",
           text="Jumlah Penderita Diabetes",
           color="Jumlah Penderita Diabetes",
           color_continuous_scale="Greens",
       )
-      fig_bar_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-      fig_bar_dm.update_layout(xaxis_tickangle=-45, height=450)
-      st.plotly_chart(fig_bar_dm, use_container_width=True)
+      fig_pkm_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_pkm_dm.update_layout(xaxis_tickangle=-45, height=450)
+      st.plotly_chart(fig_pkm_dm, use_container_width=True)
 
-  # --- TAB 2: ANALISIS DIAGNOSIS & ALASANNYA ---
+  # --- TAB 2: ANALISIS DIAGNOSIS (DENGAN DISTRIBUSI PERSENTASE PER PKM) ---
   with tab2:
-    st.subheader("📋 Analisis Penegakan Diagnosis (HT & DM)")
+    st.subheader(
+        "📋 Analisis Penegakan Diagnosis (HT & DM) & Persentase Per PKM"
+    )
     col_d1, col_d2 = st.columns(2)
 
     with col_d1:
@@ -219,6 +242,109 @@ if uploaded_file is not None:
       fig_pie_diag_ht.update_traces(textinfo="percent+value")
       st.plotly_chart(fig_pie_diag_ht, use_container_width=True)
 
+    with col_d2:
+      st.markdown(
+          f"**Diabetes: Penderita ({tot_dm:,}) vs Diberikan Diagnosis"
+          f" ({diag_dm:,})**"
+      )
+      sisa_diag_dm = max(0, tot_dm - diag_dm)
+      df_pie_diag_dm = pd.DataFrame(
+          {
+              "Status Diagnosis": [
+                  "Diberikan Diagnosis",
+                  "Belum/Tidak Diberikan",
+              ],
+              "Jumlah": [diag_dm, sisa_diag_dm],
+          }
+      )
+      fig_pie_diag_dm = px.pie(
+          df_pie_diag_dm,
+          names="Status Diagnosis",
+          values="Jumlah",
+          hole=0.4,
+          color_discrete_sequence=["#38b000", "#ccff33"],
+      )
+      fig_pie_diag_dm.update_traces(textinfo="percent+value")
+      st.plotly_chart(fig_pie_diag_dm, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader(
+        "📊 Grafik Persentase Diagnosis (%) dari Total Penderita Per Puskesmas"
+    )
+
+    # Grafik Persentase Diagnosis HT Per PKM
+    if "Diagnosis Hipertensi" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+      st.markdown("**Persentase Diagnosis Hipertensi (%) Per Puskesmas**")
+      df_diag_pkm_ht = (
+          df.groupby("Nama Faskes")[
+              ["Diagnosis Hipertensi", "Jumlah Penderita Hipertensi"]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_diag_pkm_ht["Persentase Diag HT"] = (
+          df_diag_pkm_ht["Diagnosis Hipertensi"]
+          / df_diag_pkm_ht["Jumlah Penderita Hipertensi"]
+          * 100
+      ).fillna(0)
+
+      fig_diag_pkm_ht = px.bar(
+          df_diag_pkm_ht,
+          x="Nama Faskes",
+          y="Persentase Diag HT",
+          text=df_diag_pkm_ht["Persentase Diag HT"].apply(lambda x: f"{x:.1f}%"),
+          color="Persentase Diag HT",
+          color_continuous_scale="Blues",
+      )
+      fig_diag_pkm_ht.update_traces(textposition="outside")
+      fig_diag_pkm_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_diag_pkm_ht, use_container_width=True)
+
+    st.markdown("---")
+
+    # Grafik Persentase Diagnosis DM Per PKM
+    if "Diberikan Diagnosis" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
+      st.markdown("**Persentase Diagnosis Diabetes (%) Per Puskesmas**")
+      df_diag_pkm_dm = (
+          df.groupby("Nama Faskes")[
+              ["Diberikan Diagnosis", "Jumlah Penderita Diabetes"]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_diag_pkm_dm["Persentase Diag DM"] = (
+          df_diag_pkm_dm["Diberikan Diagnosis"]
+          / df_diag_pkm_dm["Jumlah Penderita Diabetes"]
+          * 100
+      ).fillna(0)
+
+      fig_diag_pkm_dm = px.bar(
+          df_diag_pkm_dm,
+          x="Nama Faskes",
+          y="Persentase Diag DM",
+          text=df_diag_pkm_dm["Persentase Diag DM"].apply(lambda x: f"{x:.1f}%"),
+          color="Persentase Diag DM",
+          color_continuous_scale="Greens",
+      )
+      fig_diag_pkm_dm.update_traces(textposition="outside")
+      fig_diag_pkm_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_diag_pkm_dm, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### ⚠️ Analisis Alasan Tidak Diberikan Diagnosis")
+    col_al_d1, col_al_d2 = st.columns(2)
+
+    with col_al_d1:
       st.markdown("*Alasan Hipertensi Tidak Diberikan Diagnosis:*")
       cols_als_diag_ht = [
           c
@@ -252,31 +378,7 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-    with col_d2:
-      st.markdown(
-          f"**Diabetes: Penderita ({tot_dm:,}) vs Diberikan Diagnosis"
-          f" ({diag_dm:,})**"
-      )
-      sisa_diag_dm = max(0, tot_dm - diag_dm)
-      df_pie_diag_dm = pd.DataFrame(
-          {
-              "Status Diagnosis": [
-                  "Diberikan Diagnosis",
-                  "Belum/Tidak Diberikan",
-              ],
-              "Jumlah": [diag_dm, sisa_diag_dm],
-          }
-      )
-      fig_pie_diag_dm = px.pie(
-          df_pie_diag_dm,
-          names="Status Diagnosis",
-          values="Jumlah",
-          hole=0.4,
-          color_discrete_sequence=["#38b000", "#ccff33"],
-      )
-      fig_pie_diag_dm.update_traces(textinfo="percent+value")
-      st.plotly_chart(fig_pie_diag_dm, use_container_width=True)
-
+    with col_al_d2:
       st.markdown("*Alasan Diabetes Tidak Diberikan Diagnosis:*")
       cols_als_diag_dm = [
           c
@@ -310,13 +412,12 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: CAKUPAN EDUKASI (DENGAN PERSENTASE PER WILAYAH) ---
+  # --- TAB 3: CAKUPAN EDUKASI (DENGAN DISTRIBUSI PER PKM) ---
   with tab3:
     st.subheader(
-        "🗣️ Analisis Cakupan Pemberian Edukasi (% dari Penderita) per Wilayah"
+        "🗣️ Analisis Cakupan Pemberian Edukasi (% dari Penderita) Per Puskesmas"
     )
 
-    # Metrik Ringkasan Edukasi
     ce1, ce2 = st.columns(2)
     with ce1:
       st.metric(
@@ -333,106 +434,105 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # Grafik Persentase Edukasi Hipertensi per Wilayah
     if (
         "Edukasi Hipertensi" in df.columns
         and "Jumlah Penderita Hipertensi" in df.columns
         and "Nama Faskes" in df.columns
     ):
       st.markdown(
-          "**Persentase Edukasi Hipertensi (%) dari Total Penderita Hipertensi"
-          " per Wilayah**"
+          "**Persentase Edukasi Hipertensi (%) Per Puskesmas (PKM)**"
       )
-      df_edu_pct_ht = (
-          df.groupby(group_col)[
+      df_edu_pkm_ht = (
+          df.groupby("Nama Faskes")[
               ["Edukasi Hipertensi", "Jumlah Penderita Hipertensi"]
           ]
           .sum()
           .reset_index()
       )
-      df_edu_pct_ht["Persentase Edukasi HT"] = (
-          df_edu_pct_ht["Edukasi Hipertensi"]
-          / df_edu_pct_ht["Jumlah Penderita Hipertensi"]
+      df_edu_pkm_ht["Persentase Edukasi HT"] = (
+          df_edu_pkm_ht["Edukasi Hipertensi"]
+          / df_edu_pkm_ht["Jumlah Penderita Hipertensi"]
           * 100
       ).fillna(0)
 
-      fig_edu_pct_ht = px.bar(
-          df_edu_pct_ht,
-          x=group_col,
+      fig_edu_pkm_ht = px.bar(
+          df_edu_pkm_ht,
+          x="Nama Faskes",
           y="Persentase Edukasi HT",
-          text=df_edu_pct_ht["Persentase Edukasi HT"].apply(
+          text=df_edu_pkm_ht["Persentase Edukasi HT"].apply(
               lambda x: f"{x:.1f}%"
           ),
           color="Persentase Edukasi HT",
           color_continuous_scale="Blues",
       )
-      fig_edu_pct_ht.update_traces(textposition="outside")
-      fig_edu_pct_ht.update_layout(
+      fig_edu_pkm_ht.update_traces(textposition="outside")
+      fig_edu_pkm_ht.update_layout(
           xaxis_tickangle=-45,
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
       )
-      st.plotly_chart(fig_edu_pct_ht, use_container_width=True)
+      st.plotly_chart(fig_edu_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
-    # Grafik Persentase Edukasi Diabetes per Wilayah
     if (
         "Edukasi Diabetes" in df.columns
         and "Jumlah Penderita Diabetes" in df.columns
         and "Nama Faskes" in df.columns
     ):
       st.markdown(
-          "**Persentase Edukasi Diabetes (%) dari Total Penderita Diabetes per"
-          " Wilayah**"
+          "**Persentase Edukasi Diabetes (%) Per Puskesmas (PKM)**"
       )
-      df_edu_pct_dm = (
-          df.groupby(group_col)[
+      df_edu_pkm_dm = (
+          df.groupby("Nama Faskes")[
               ["Edukasi Diabetes", "Jumlah Penderita Diabetes"]
           ]
           .sum()
           .reset_index()
       )
-      df_edu_pct_dm["Persentase Edukasi DM"] = (
-          df_edu_pct_dm["Edukasi Diabetes"]
-          / df_edu_pct_dm["Jumlah Penderita Diabetes"]
+      df_edu_pkm_dm["Persentase Edukasi DM"] = (
+          df_edu_pkm_dm["Edukasi Diabetes"]
+          / df_edu_pkm_dm["Jumlah Penderita Diabetes"]
           * 100
       ).fillna(0)
 
-      fig_edu_pct_dm = px.bar(
-          df_edu_pct_dm,
-          x=group_col,
+      fig_edu_pkm_dm = px.bar(
+          df_edu_pkm_dm,
+          x="Nama Faskes",
           y="Persentase Edukasi DM",
-          text=df_edu_pct_dm["Persentase Edukasi DM"].apply(
+          text=df_edu_pkm_dm["Persentase Edukasi DM"].apply(
               lambda x: f"{x:.1f}%"
           ),
           color="Persentase Edukasi DM",
           color_continuous_scale="Greens",
       )
-      fig_edu_pct_dm.update_traces(textposition="outside")
-      fig_edu_pct_dm.update_layout(
+      fig_edu_pkm_dm.update_traces(textposition="outside")
+      fig_edu_pkm_dm.update_layout(
           xaxis_tickangle=-45,
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
       )
-      st.plotly_chart(fig_edu_pct_dm, use_container_width=True)
+      st.plotly_chart(fig_edu_pkm_dm, use_container_width=True)
 
-  # --- TAB 4: PREVALENSI PERSENTASE WILAYAH ---
+  # --- TAB 4: PREVALENSI PERSENTASE PER PKM ---
   with tab4:
     st.subheader(
-        "📊 Grafik Persentase (Prevalensi) Kasus dari Jumlah Diskrining per"
-        " Wilayah"
+        "📊 Grafik Prevalensi Kasus dari Jumlah Diskrining Per Puskesmas (PKM)"
     )
 
     if (
         "Jumlah Orang Diperiksa Tekanan Darah" in df.columns
         and "Jumlah Penderita Hipertensi" in df.columns
+        and "Nama Faskes" in df.columns
     ):
-      st.markdown("**Persentase Penderita Hipertensi (%) dari Orang Diperiksa TD**")
-      df_pct_ht = (
-          df.groupby(group_col)[
+      st.markdown(
+          "**Persentase Penderita Hipertensi (%) Per Puskesmas dari Orang"
+          " Diperiksa TD**"
+      )
+      df_pkm_pct_ht = (
+          df.groupby("Nama Faskes")[
               [
                   "Jumlah Penderita Hipertensi",
                   "Jumlah Orang Diperiksa Tekanan Darah",
@@ -441,39 +541,42 @@ if uploaded_file is not None:
           .sum()
           .reset_index()
       )
-      df_pct_ht["Persentase HT"] = (
-          df_pct_ht["Jumlah Penderita Hipertensi"]
-          / df_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
+      df_pkm_pct_ht["Persentase HT"] = (
+          df_pkm_pct_ht["Jumlah Penderita Hipertensi"]
+          / df_pkm_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
           * 100
       ).fillna(0)
-      fig_pct_ht = px.bar(
-          df_pct_ht,
-          x=group_col,
+
+      fig_pkm_pct_ht = px.bar(
+          df_pkm_pct_ht,
+          x="Nama Faskes",
           y="Persentase HT",
-          text=df_pct_ht["Persentase HT"].apply(lambda x: f"{x:.1f}%"),
+          text=df_pkm_pct_ht["Persentase HT"].apply(lambda x: f"{x:.1f}%"),
           color="Persentase HT",
           color_continuous_scale="Teal",
       )
-      fig_pct_ht.update_traces(textposition="outside")
-      fig_pct_ht.update_layout(
+      fig_pkm_pct_ht.update_traces(textposition="outside")
+      fig_pkm_pct_ht.update_layout(
           xaxis_tickangle=-45,
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
       )
-      st.plotly_chart(fig_pct_ht, use_container_width=True)
+      st.plotly_chart(fig_pkm_pct_ht, use_container_width=True)
 
     st.markdown("---")
 
     if (
         "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df.columns
         and "Jumlah Penderita Diabetes" in df.columns
+        and "Nama Faskes" in df.columns
     ):
       st.markdown(
-          "**Persentase Penderita Diabetes (%) dari Orang Diperiksa Gula Darah**"
+          "**Persentase Penderita Diabetes (%) Per Puskesmas dari Orang Diperiksa"
+          " Gula Darah**"
       )
-      df_pct_dm = (
-          df.groupby(group_col)[
+      df_pkm_pct_dm = (
+          df.groupby("Nama Faskes")[
               [
                   "Jumlah Penderita Diabetes",
                   "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)",
@@ -482,33 +585,36 @@ if uploaded_file is not None:
           .sum()
           .reset_index()
       )
-      df_pct_dm["Persentase DM"] = (
-          df_pct_dm["Jumlah Penderita Diabetes"]
-          / df_pct_dm[
+      df_pkm_pct_dm["Persentase DM"] = (
+          df_pkm_pct_dm["Jumlah Penderita Diabetes"]
+          / df_pkm_pct_dm[
               "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"
           ]
           * 100
       ).fillna(0)
-      fig_pct_dm = px.bar(
-          df_pct_dm,
-          x=group_col,
+
+      fig_pkm_pct_dm = px.bar(
+          df_pkm_pct_dm,
+          x="Nama Faskes",
           y="Persentase DM",
-          text=df_pct_dm["Persentase DM"].apply(lambda x: f"{x:.1f}%"),
+          text=df_pkm_pct_dm["Persentase DM"].apply(lambda x: f"{x:.1f}%"),
           color="Persentase DM",
           color_continuous_scale="YlOrRd",
       )
-      fig_pct_dm.update_traces(textposition="outside")
-      fig_pct_dm.update_layout(
+      fig_pkm_pct_dm.update_traces(textposition="outside")
+      fig_pkm_pct_dm.update_layout(
           xaxis_tickangle=-45,
           height=450,
           yaxis_title="Persentase (%)",
           yaxis_ticksuffix="%",
       )
-      st.plotly_chart(fig_pct_dm, use_container_width=True)
+      st.plotly_chart(fig_pkm_pct_dm, use_container_width=True)
 
-  # --- TAB 5: PENGOBATAN & ANALISIS ALASAN TIDAK DIBERI OBAT ---
+  # --- TAB 5: CAKUPAN PENGOBATAN (DENGAN PERSENTASE PER PKM) & ALASAN ---
   with tab5:
-    st.subheader("🍩 Proporsi Pemberian Pengobatan pada Penderita")
+    st.subheader(
+        "🍩 Proporsi & Persentase Cakupan Pengobatan Penderita Per Puskesmas"
+    )
     col_pie1, col_pie2 = st.columns(2)
 
     with col_pie1:
@@ -550,67 +656,150 @@ if uploaded_file is not None:
       st.plotly_chart(fig_pie_dm, use_container_width=True)
 
     st.markdown("---")
-    st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
+    st.subheader(
+        "📊 Grafik Persentase Pemberian Obat (%) dari Total Penderita Per"
+        " Puskesmas"
+    )
 
-    st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
-    cols_alasan_ht = [
-        c for c in df.columns if "Alasan Tidak Diberikan Obat Hipertensi" in c
-    ]
-    if cols_alasan_ht:
-      sum_alasan_ht = df[cols_alasan_ht].sum().reset_index()
-      sum_alasan_ht.columns = ["Alasan", "Jumlah"]
-      sum_alasan_ht["Alasan"] = sum_alasan_ht["Alasan"].str.replace(
-          "Alasan Tidak Diberikan Obat Hipertensi - ", ""
+    # Grafik Persentase Pengobatan HT Per PKM
+    if "Diberikan Obat" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+      st.markdown("**Persentase Pengobatan Hipertensi (%) Per Puskesmas**")
+      df_obat_pkm_ht = (
+          df.groupby("Nama Faskes")[
+              ["Diberikan Obat", "Jumlah Penderita Hipertensi"]
+          ]
+          .sum()
+          .reset_index()
       )
-      sum_alasan_ht = sum_alasan_ht[sum_alasan_ht["Jumlah"] > 0]
-      if not sum_alasan_ht.empty:
-        fig_als_ht = px.bar(
-            sum_alasan_ht,
-            x="Jumlah",
-            y="Alasan",
-            orientation="h",
-            text="Jumlah",
-            color="Jumlah",
-            color_continuous_scale="Reds",
-        )
-        fig_als_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_als_ht.update_layout(
-            height=400, yaxis={"categoryorder": "total ascending"}
-        )
-        st.plotly_chart(fig_als_ht, use_container_width=True)
-      else:
-        st.info("Tidak ada data alasan.")
+      df_obat_pkm_ht["Persentase Obat HT"] = (
+          df_obat_pkm_ht["Diberikan Obat"]
+          / df_obat_pkm_ht["Jumlah Penderita Hipertensi"]
+          * 100
+      ).fillna(0)
+
+      fig_obat_pkm_ht = px.bar(
+          df_obat_pkm_ht,
+          x="Nama Faskes",
+          y="Persentase Obat HT",
+          text=df_obat_pkm_ht["Persentase Obat HT"].apply(
+              lambda x: f"{x:.1f}%"
+          ),
+          color="Persentase Obat HT",
+          color_continuous_scale="Blues",
+      )
+      fig_obat_pkm_ht.update_traces(textposition="outside")
+      fig_obat_pkm_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_obat_pkm_ht, use_container_width=True)
 
     st.markdown("---")
 
-    st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
-    cols_alasan_dm = [
-        c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c
-    ]
-    if cols_alasan_dm:
-      sum_alasan_dm = df[cols_alasan_dm].sum().reset_index()
-      sum_alasan_dm.columns = ["Alasan", "Jumlah"]
-      sum_alasan_dm["Alasan"] = sum_alasan_dm["Alasan"].str.replace(
-          "Alasan Tidak Diberikan Obat Diabetes - ", ""
+    # Grafik Persentase Pengobatan DM Per PKM
+    if "Diberikan Obat Diabetes" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
+      st.markdown("**Persentase Pengobatan Diabetes (%) Per Puskesmas**")
+      df_obat_pkm_dm = (
+          df.groupby("Nama Faskes")[
+              ["Diberikan Obat Diabetes", "Jumlah Penderita Diabetes"]
+          ]
+          .sum()
+          .reset_index()
       )
-      sum_alasan_dm = sum_alasan_dm[sum_alasan_dm["Jumlah"] > 0]
-      if not sum_alasan_dm.empty:
-        fig_als_dm = px.bar(
-            sum_alasan_dm,
-            x="Jumlah",
-            y="Alasan",
-            orientation="h",
-            text="Jumlah",
-            color="Jumlah",
-            color_continuous_scale="Oranges",
+      df_obat_pkm_dm["Persentase Obat DM"] = (
+          df_obat_pkm_dm["Diberikan Obat Diabetes"]
+          / df_obat_pkm_dm["Jumlah Penderita Diabetes"]
+          * 100
+      ).fillna(0)
+
+      fig_obat_pkm_dm = px.bar(
+          df_obat_pkm_dm,
+          x="Nama Faskes",
+          y="Persentase Obat DM",
+          text=df_obat_pkm_dm["Persentase Obat DM"].apply(
+              lambda x: f"{x:.1f}%"
+          ),
+          color="Persentase Obat DM",
+          color_continuous_scale="Greens",
+      )
+      fig_obat_pkm_dm.update_traces(textposition="outside")
+      fig_obat_pkm_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_obat_pkm_dm, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("⚠️ Analisis Alasan Tidak Diberikan Obat")
+
+    col_al_o1, col_al_o2 = st.columns(2)
+    with col_al_o1:
+      st.markdown("**Alasan Hipertensi Tidak Diberikan Obat**")
+      cols_alasan_ht = [
+          c for c in df.columns if "Alasan Tidak Diberikan Obat Hipertensi" in c
+      ]
+      if cols_alasan_ht:
+        sum_alasan_ht = df[cols_alasan_ht].sum().reset_index()
+        sum_alasan_ht.columns = ["Alasan", "Jumlah"]
+        sum_alasan_ht["Alasan"] = sum_alasan_ht["Alasan"].str.replace(
+            "Alasan Tidak Diberikan Obat Hipertensi - ", ""
         )
-        fig_als_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_als_dm.update_layout(
-            height=400, yaxis={"categoryorder": "total ascending"}
+        sum_alasan_ht = sum_alasan_ht[sum_alasan_ht["Jumlah"] > 0]
+        if not sum_alasan_ht.empty:
+          fig_als_ht = px.bar(
+              sum_alasan_ht,
+              x="Jumlah",
+              y="Alasan",
+              orientation="h",
+              text="Jumlah",
+              color="Jumlah",
+              color_continuous_scale="Reds",
+          )
+          fig_als_ht.update_traces(
+              texttemplate="%{text:,}", textposition="outside"
+          )
+          fig_als_ht.update_layout(
+              height=400, yaxis={"categoryorder": "total ascending"}
+          )
+          st.plotly_chart(fig_als_ht, use_container_width=True)
+        else:
+          st.info("Tidak ada data alasan.")
+
+    with col_al_o2:
+      st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
+      cols_alasan_dm = [
+          c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c
+      ]
+      if cols_alasan_dm:
+        sum_alasan_dm = df[cols_alasan_dm].sum().reset_index()
+        sum_alasan_dm.columns = ["Alasan", "Jumlah"]
+        sum_alasan_dm["Alasan"] = sum_alasan_dm["Alasan"].str.replace(
+            "Alasan Tidak Diberikan Obat Diabetes - ", ""
         )
-        st.plotly_chart(fig_als_dm, use_container_width=True)
-      else:
-        st.info("Tidak ada data alasan.")
+        sum_alasan_dm = sum_alasan_dm[sum_alasan_dm["Jumlah"] > 0]
+        if not sum_alasan_dm.empty:
+          fig_als_dm = px.bar(
+              sum_alasan_dm,
+              x="Jumlah",
+              y="Alasan",
+              orientation="h",
+              text="Jumlah",
+              color="Jumlah",
+              color_continuous_scale="Oranges",
+          )
+          fig_als_dm.update_traces(
+              texttemplate="%{text:,}", textposition="outside"
+          )
+          fig_als_dm.update_layout(
+              height=400, yaxis={"categoryorder": "total ascending"}
+          )
+          st.plotly_chart(fig_als_dm, use_container_width=True)
+        else:
+          st.info("Tidak ada data alasan.")
 
   # --- TAB 6: TABEL DETAIL ---
   with tab6:
