@@ -77,6 +77,14 @@ if uploaded_file is not None:
       else 0
   )
   prev_ht = (tot_ht / scr_ht * 100) if scr_ht > 0 else 0
+
+  diag_ht = (
+      df["Diagnosis Hipertensi"].sum()
+      if "Diagnosis Hipertensi" in df.columns
+      else 0
+  )
+  persen_diag_ht = (diag_ht / tot_ht * 100) if tot_ht > 0 else 0
+
   obat_ht = df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
   persen_ht = (obat_ht / tot_ht * 100) if tot_ht > 0 else 0
 
@@ -98,6 +106,12 @@ if uploaded_file is not None:
       else 0
   )
   prev_dm = (tot_dm / scr_dm * 100) if scr_dm > 0 else 0
+
+  diag_dm = (
+      df["Diberikan Diagnosis"].sum() if "Diberikan Diagnosis" in df.columns else 0
+  )
+  persen_diag_dm = (diag_dm / tot_dm * 100) if tot_dm > 0 else 0
+
   obat_dm = (
       df["Diberikan Obat Diabetes"].sum()
       if "Diberikan Obat Diabetes" in df.columns
@@ -109,15 +123,6 @@ if uploaded_file is not None:
       df["Edukasi Diabetes"].sum() if "Edukasi Diabetes" in df.columns else 0
   )
   persen_edu_dm = (edu_dm / tot_dm * 100) if tot_dm > 0 else 0
-
-  diag_ht = (
-      df["Diagnosis Hipertensi"].sum()
-      if "Diagnosis Hipertensi" in df.columns
-      else 0
-  )
-  diag_dm = (
-      df["Diberikan Diagnosis"].sum() if "Diberikan Diagnosis" in df.columns else 0
-  )
 
   # ==========================================
   # 3. PEMBUATAN MENU KESAMPING (TABS)
@@ -133,27 +138,48 @@ if uploaded_file is not None:
 
   # --- TAB 1: RINGKASAN & GRAFIK KASUS ---
   with tab1:
-    st.subheader("📊 Ringkasan Skrining, Kasus, & Pengobatan")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
+    st.subheader("📊 Ringkasan Skrining, Kasus, Diagnosis, & Pengobatan")
+
+    # Baris 1: Hipertensi
+    st.markdown("##### 🔹 Ringkasan Hipertensi (HT)")
+    mc1, mc2, mc3 = st.columns(3)
+    with mc1:
       st.metric(
           "Total Penderita Hipertensi",
           f"{tot_ht:,}",
           delta=f"{prev_ht:.1f}% dari {scr_ht:,} diskrining",
       )
-    with c2:
+    with mc2:
+      st.metric(
+          "Hipertensi Diberikan Diagnosis",
+          f"{diag_ht:,}",
+          delta=f"{persen_diag_ht:.1f}% dari penderita",
+      )
+    with mc3:
       st.metric(
           "Hipertensi Diberikan Obat",
           f"{obat_ht:,}",
           delta=f"{persen_ht:.1f}% dari penderita",
       )
-    with c3:
+
+    st.markdown("")
+
+    # Baris 2: Diabetes
+    st.markdown("##### 🔹 Ringkasan Diabetes Melitus (DM)")
+    mc4, mc5, mc6 = st.columns(3)
+    with mc4:
       st.metric(
           "Total Penderita Diabetes",
           f"{tot_dm:,}",
           delta=f"{prev_dm:.1f}% dari {scr_dm:,} diskrining",
       )
-    with c4:
+    with mc5:
+      st.metric(
+          "Diabetes Diberikan Diagnosis",
+          f"{diag_dm:,}",
+          delta=f"{persen_diag_dm:.1f}% dari penderita",
+      )
+    with mc6:
       st.metric(
           "Diabetes Diberikan Obat",
           f"{obat_dm:,}",
