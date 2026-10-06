@@ -21,38 +21,47 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-  # Membaca file
+  # Membaca file utama
   try:
-    df = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
+    df_raw = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
   except:
-    df = pd.read_excel(uploaded_file)
+    df_raw = pd.read_excel(uploaded_file)
 
   st.success("✅ Data berhasil dimuat!")
+
+  # Simpan salinan asli untuk grafik per kecamatan yang ingin ditampilkan utuh
+  df_original = df_raw.copy()
 
   # 2. Filter Wilayah Fleksibel (Kabupaten -> Kecamatan -> Faskes) di Bagian Atas
   st.subheader("🔍 Filter Wilayah & Faskes")
   col_f1, col_f2, col_f3 = st.columns(3)
 
   with col_f1:
-    if "Nama Kabupaten Kota" in df.columns:
-      kab_list = ["Semua"] + list(df["Nama Kabupaten Kota"].unique())
+    if "Nama Kabupaten Kota" in df_raw.columns:
+      kab_list = ["Semua"] + list(df_raw["Nama Kabupaten Kota"].unique())
       pilih_kab = st.selectbox("Kabupaten / Kota:", options=kab_list)
       if pilih_kab != "Semua":
-        df = df[df["Nama Kabupaten Kota"] == pilih_kab]
+        df_raw = df_raw[df_raw["Nama Kabupaten Kota"] == pilih_kab]
+        df_original = df_original[
+            df_original["Nama Kabupaten Kota"] == pilih_kab
+        ]
 
   with col_f2:
-    if "Nama Kecamatan" in df.columns:
-      kec_list = ["Semua"] + list(df["Nama Kecamatan"].unique())
+    if "Nama Kecamatan" in df_raw.columns:
+      kec_list = ["Semua"] + list(df_raw["Nama Kecamatan"].unique())
       pilih_kec = st.selectbox("Kecamatan:", options=kec_list)
       if pilih_kec != "Semua":
-        df = df[df["Nama Kecamatan"] == pilih_kec]
+        df_raw = df_raw[df_raw["Nama Kecamatan"] == pilih_kec]
 
   with col_f3:
-    if "Nama Faskes" in df.columns:
-      faskes_list = ["Semua"] + list(df["Nama Faskes"].unique())
+    if "Nama Faskes" in df_raw.columns:
+      faskes_list = ["Semua"] + list(df_raw["Nama Faskes"].unique())
       pilih_faskes = st.selectbox("Puskesmas / Faskes:", options=faskes_list)
       if pilih_faskes != "Semua":
-        df = df[df["Nama Faskes"] == pilih_faskes]
+        df_raw = df_raw[df_raw["Nama Faskes"] == pilih_faskes]
+
+  # Gunakan df_raw sebagai dataframe utama untuk analisis
+  df = df_raw
 
   st.markdown("---")
 
@@ -210,7 +219,7 @@ if uploaded_file is not None:
       fig_pkm_dm.update_layout(xaxis_tickangle=-45, height=450)
       st.plotly_chart(fig_pkm_dm, use_container_width=True)
 
-  # --- TAB 2: ANALISIS DIAGNOSIS (DENGAN DISTRIBUSI PERSENTASE PER PKM) ---
+  # --- TAB 2: ANALISIS DIAGNOSIS ---
   with tab2:
     st.subheader(
         "📋 Analisis Penegakan Diagnosis (HT & DM) & Persentase Per PKM"
@@ -272,7 +281,6 @@ if uploaded_file is not None:
         "📊 Grafik Persentase Diagnosis (%) dari Total Penderita Per Puskesmas"
     )
 
-    # Grafik Persentase Diagnosis HT Per PKM
     if "Diagnosis Hipertensi" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Diagnosis Hipertensi (%) Per Puskesmas**")
       df_diag_pkm_ht = (
@@ -307,7 +315,6 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # Grafik Persentase Diagnosis DM Per PKM
     if "Diberikan Diagnosis" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Diagnosis Diabetes (%) Per Puskesmas**")
       df_diag_pkm_dm = (
@@ -412,7 +419,7 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: CAKUPAN EDUKASI (DENGAN DISTRIBUSI PER PKM) ---
+  # --- TAB 3: CAKUPAN EDUKASI ---
   with tab3:
     st.subheader(
         "🗣️ Analisis Cakupan Pemberian Edukasi (% dari Penderita) Per Puskesmas"
@@ -516,20 +523,65 @@ if uploaded_file is not None:
       )
       st.plotly_chart(fig_edu_pkm_dm, use_container_width=True)
 
-  # --- TAB 4: PREVALENSI PERSENTASE PER PKM ---
+  # --- TAB 4: PREVALENSI PERSENTASE (KECAMATAN & PKM MENGGUNAKAN DF_ORIGINAL) ---
   with tab4:
     st.subheader(
-        "📊 Grafik Prevalensi Kasus dari Jumlah Diskrining Per Puskesmas (PKM)"
+        "📊 Grafik Prevalensi Kasus dari Jumlah Diskrining (Berdasarkan Kecamatan"
+        " & Per Puskesmas)"
     )
 
+    # 1. Prevalensi Hipertensi per Kecamatan (Menggunakan df_original agar tampil lengkap)
+    if (
+        "Jumlah Orang Diperiksa Tekanan Darah" in df_original.columns
+        and "Jumlah Penderita Hipertensi" in df_original.columns
+        and "Nama Kecamatan" in df_original.columns
+    ):
+      st.markdown(
+          "**1. Persentase Penderita Hipertensi (%) Berdasarkan Kecamatan**"
+      )
+      df_kec_pct_ht = (
+          df_original.groupby("Nama Kecamatan")[
+              [
+                  "Jumlah Penderita Hipertensi",
+                  "Jumlah Orang Diperiksa Tekanan Darah",
+              ]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_kec_pct_ht["Persentase HT"] = (
+          df_kec_pct_ht["Jumlah Penderita Hipertensi"]
+          / df_kec_pct_ht["Jumlah Orang Diperiksa Tekanan Darah"]
+          * 100
+      ).fillna(0)
+
+      fig_kec_pct_ht = px.bar(
+          df_kec_pct_ht,
+          x="Nama Kecamatan",
+          y="Persentase HT",
+          text=df_kec_pct_ht["Persentase HT"].apply(lambda x: f"{x:.1f}%"),
+          color="Persentase HT",
+          color_continuous_scale="Teal",
+      )
+      fig_kec_pct_ht.update_traces(textposition="outside")
+      fig_kec_pct_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=420,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_kec_pct_ht, use_container_width=True)
+
+    st.markdown("---")
+
+    # 2. Prevalensi Hipertensi per Puskesmas (PKM)
     if (
         "Jumlah Orang Diperiksa Tekanan Darah" in df.columns
         and "Jumlah Penderita Hipertensi" in df.columns
         and "Nama Faskes" in df.columns
     ):
       st.markdown(
-          "**Persentase Penderita Hipertensi (%) Per Puskesmas dari Orang"
-          " Diperiksa TD**"
+          "**2. Persentase Penderita Hipertensi (%) Per Puskesmas (PKM)**"
       )
       df_pkm_pct_ht = (
           df.groupby("Nama Faskes")[
@@ -553,7 +605,7 @@ if uploaded_file is not None:
           y="Persentase HT",
           text=df_pkm_pct_ht["Persentase HT"].apply(lambda x: f"{x:.1f}%"),
           color="Persentase HT",
-          color_continuous_scale="Teal",
+          color_continuous_scale="Darkmint",
       )
       fig_pkm_pct_ht.update_traces(textposition="outside")
       fig_pkm_pct_ht.update_layout(
@@ -566,14 +618,60 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
+    # 3. Prevalensi Diabetes per Kecamatan (Menggunakan df_original)
+    if (
+        "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df_original.columns
+        and "Jumlah Penderita Diabetes" in df_original.columns
+        and "Nama Kecamatan" in df_original.columns
+    ):
+      st.markdown(
+          "**3. Persentase Penderita Diabetes (%) Berdasarkan Kecamatan**"
+      )
+      df_kec_pct_dm = (
+          df_original.groupby("Nama Kecamatan")[
+              [
+                  "Jumlah Penderita Diabetes",
+                  "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)",
+              ]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_kec_pct_dm["Persentase DM"] = (
+          df_kec_pct_dm["Jumlah Penderita Diabetes"]
+          / df_kec_pct_dm[
+              "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"
+          ]
+          * 100
+      ).fillna(0)
+
+      fig_kec_pct_dm = px.bar(
+          df_kec_pct_dm,
+          x="Nama Kecamatan",
+          y="Persentase DM",
+          text=df_kec_pct_dm["Persentase DM"].apply(lambda x: f"{x:.1f}%"),
+          color="Persentase DM",
+          color_continuous_scale="YlOrRd",
+      )
+      fig_kec_pct_dm.update_traces(textposition="outside")
+      fig_kec_pct_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=420,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_kec_pct_dm, use_container_width=True)
+
+    st.markdown("---")
+
+    # 4. Prevalensi Diabetes per Puskesmas (PKM)
     if (
         "Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)" in df.columns
         and "Jumlah Penderita Diabetes" in df.columns
         and "Nama Faskes" in df.columns
     ):
       st.markdown(
-          "**Persentase Penderita Diabetes (%) Per Puskesmas dari Orang Diperiksa"
-          " Gula Darah**"
+          "**4. Persentase Penderita Diabetes (%) Per Puskesmas (PKM)**"
       )
       df_pkm_pct_dm = (
           df.groupby("Nama Faskes")[
@@ -599,7 +697,7 @@ if uploaded_file is not None:
           y="Persentase DM",
           text=df_pkm_pct_dm["Persentase DM"].apply(lambda x: f"{x:.1f}%"),
           color="Persentase DM",
-          color_continuous_scale="YlOrRd",
+          color_continuous_scale="Oranges",
       )
       fig_pkm_pct_dm.update_traces(textposition="outside")
       fig_pkm_pct_dm.update_layout(
@@ -610,7 +708,7 @@ if uploaded_file is not None:
       )
       st.plotly_chart(fig_pkm_pct_dm, use_container_width=True)
 
-  # --- TAB 5: CAKUPAN PENGOBATAN (DENGAN PERSENTASE PER PKM) & ALASAN ---
+  # --- TAB 5: CAKUPAN PENGOBATAN & ALASAN ---
   with tab5:
     st.subheader(
         "🍩 Proporsi & Persentase Cakupan Pengobatan Penderita Per Puskesmas"
@@ -661,7 +759,6 @@ if uploaded_file is not None:
         " Puskesmas"
     )
 
-    # Grafik Persentase Pengobatan HT Per PKM
     if "Diberikan Obat" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Pengobatan Hipertensi (%) Per Puskesmas**")
       df_obat_pkm_ht = (
@@ -698,7 +795,6 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    # Grafik Persentase Pengobatan DM Per PKM
     if "Diberikan Obat Diabetes" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
       st.markdown("**Persentase Pengobatan Diabetes (%) Per Puskesmas**")
       df_obat_pkm_dm = (
