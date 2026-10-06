@@ -187,6 +187,33 @@ if uploaded_file is not None:
       )
       st.plotly_chart(fig_kec_ht, use_container_width=True)
 
+    # Grafik Penderita DM Berdasarkan Kecamatan (Urut Tertinggi ke Terendah)
+    if "Jumlah Penderita Diabetes" in df.columns and "Nama Kecamatan" in df.columns:
+      st.subheader("📈 Grafik Penderita Diabetes Berdasarkan Kecamatan")
+      chart_kec_dm = (
+          df.groupby("Nama Kecamatan")["Jumlah Penderita Diabetes"]
+          .sum()
+          .reset_index()
+          .sort_values(by="Jumlah Penderita Diabetes", ascending=False)
+      )
+      fig_kec_dm = px.bar(
+          chart_kec_dm,
+          x="Nama Kecamatan",
+          y="Jumlah Penderita Diabetes",
+          text="Jumlah Penderita Diabetes",
+          color="Jumlah Penderita Diabetes",
+          color_continuous_scale="Oranges",
+      )
+      fig_kec_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
+      fig_kec_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=400,
+          xaxis={"categoryorder": "total descending"},
+      )
+      st.plotly_chart(fig_kec_dm, use_container_width=True)
+
+    st.markdown("---")
+
     # Grafik Rinci HT Per PKM (Urut Tertinggi ke Terendah)
     if "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
       st.subheader("🏥 Grafik Rinci Penderita Hipertensi Per Puskesmas (PKM)")
@@ -932,7 +959,7 @@ if uploaded_file is not None:
           st.info("Tidak ada data alasan.")
 
     with col_al_o2:
-      st.markdown("**Alasan Diabetes Tidak Diberikan Obat**")
+      st.markdown("**Alasan Diabetes Melitus Tidak Diberikan Obat**")
       cols_alasan_dm = [
           c for c in df.columns if "Alasan Tidak Diberikan Obat Diabetes" in c
       ]
