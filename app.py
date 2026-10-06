@@ -310,11 +310,13 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: CAKUPAN EDUKASI (DENGAN PERSENTASE) ---
+  # --- TAB 3: CAKUPAN EDUKASI (DENGAN PERSENTASE PER WILAYAH) ---
   with tab3:
-    st.subheader("🗣️ Analisis Cakupan Pemberian Edukasi (HT & DM)")
+    st.subheader(
+        "🗣️ Analisis Cakupan Pemberian Edukasi (% dari Penderita) per Wilayah"
+    )
 
-    # Metrik Ringkasan Edukasi Berbasis Persentase
+    # Metrik Ringkasan Edukasi
     ce1, ce2 = st.columns(2)
     with ce1:
       st.metric(
@@ -331,42 +333,91 @@ if uploaded_file is not None:
 
     st.markdown("---")
 
-    col_e1, col_e2 = st.columns(2)
-    with col_e1:
-      st.markdown("**Grafik Jumlah Edukasi Hipertensi per Wilayah**")
-      if "Edukasi Hipertensi" in df.columns and "Nama Faskes" in df.columns:
-        chart_edu_ht = (
-            df.groupby(group_col)["Edukasi Hipertensi"].sum().reset_index()
-        )
-        fig_edu_ht = px.bar(
-            chart_edu_ht,
-            x=group_col,
-            y="Edukasi Hipertensi",
-            text="Edukasi Hipertensi",
-            color="Edukasi Hipertensi",
-            color_continuous_scale="Blues",
-        )
-        fig_edu_ht.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_edu_ht.update_layout(xaxis_tickangle=-45, height=400)
-        st.plotly_chart(fig_edu_ht, use_container_width=True)
+    # Grafik Persentase Edukasi Hipertensi per Wilayah
+    if (
+        "Edukasi Hipertensi" in df.columns
+        and "Jumlah Penderita Hipertensi" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
+      st.markdown(
+          "**Persentase Edukasi Hipertensi (%) dari Total Penderita Hipertensi"
+          " per Wilayah**"
+      )
+      df_edu_pct_ht = (
+          df.groupby(group_col)[
+              ["Edukasi Hipertensi", "Jumlah Penderita Hipertensi"]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_edu_pct_ht["Persentase Edukasi HT"] = (
+          df_edu_pct_ht["Edukasi Hipertensi"]
+          / df_edu_pct_ht["Jumlah Penderita Hipertensi"]
+          * 100
+      ).fillna(0)
 
-    with col_e2:
-      st.markdown("**Grafik Jumlah Edukasi Diabetes per Wilayah**")
-      if "Edukasi Diabetes" in df.columns and "Nama Faskes" in df.columns:
-        chart_edu_dm = (
-            df.groupby(group_col)["Edukasi Diabetes"].sum().reset_index()
-        )
-        fig_edu_dm = px.bar(
-            chart_edu_dm,
-            x=group_col,
-            y="Edukasi Diabetes",
-            text="Edukasi Diabetes",
-            color="Edukasi Diabetes",
-            color_continuous_scale="Greens",
-        )
-        fig_edu_dm.update_traces(texttemplate="%{text:,}", textposition="outside")
-        fig_edu_dm.update_layout(xaxis_tickangle=-45, height=400)
-        st.plotly_chart(fig_edu_dm, use_container_width=True)
+      fig_edu_pct_ht = px.bar(
+          df_edu_pct_ht,
+          x=group_col,
+          y="Persentase Edukasi HT",
+          text=df_edu_pct_ht["Persentase Edukasi HT"].apply(
+              lambda x: f"{x:.1f}%"
+          ),
+          color="Persentase Edukasi HT",
+          color_continuous_scale="Blues",
+      )
+      fig_edu_pct_ht.update_traces(textposition="outside")
+      fig_edu_pct_ht.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_edu_pct_ht, use_container_width=True)
+
+    st.markdown("---")
+
+    # Grafik Persentase Edukasi Diabetes per Wilayah
+    if (
+        "Edukasi Diabetes" in df.columns
+        and "Jumlah Penderita Diabetes" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
+      st.markdown(
+          "**Persentase Edukasi Diabetes (%) dari Total Penderita Diabetes per"
+          " Wilayah**"
+      )
+      df_edu_pct_dm = (
+          df.groupby(group_col)[
+              ["Edukasi Diabetes", "Jumlah Penderita Diabetes"]
+          ]
+          .sum()
+          .reset_index()
+      )
+      df_edu_pct_dm["Persentase Edukasi DM"] = (
+          df_edu_pct_dm["Edukasi Diabetes"]
+          / df_edu_pct_dm["Jumlah Penderita Diabetes"]
+          * 100
+      ).fillna(0)
+
+      fig_edu_pct_dm = px.bar(
+          df_edu_pct_dm,
+          x=group_col,
+          y="Persentase Edukasi DM",
+          text=df_edu_pct_dm["Persentase Edukasi DM"].apply(
+              lambda x: f"{x:.1f}%"
+          ),
+          color="Persentase Edukasi DM",
+          color_continuous_scale="Greens",
+      )
+      fig_edu_pct_dm.update_traces(textposition="outside")
+      fig_edu_pct_dm.update_layout(
+          xaxis_tickangle=-45,
+          height=450,
+          yaxis_title="Persentase (%)",
+          yaxis_ticksuffix="%",
+      )
+      st.plotly_chart(fig_edu_pct_dm, use_container_width=True)
 
   # --- TAB 4: PREVALENSI PERSENTASE WILAYAH ---
   with tab4:
