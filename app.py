@@ -4,10 +4,10 @@ import streamlit as st
 
 # Konfigurasi Halaman Web
 st.set_page_config(
-    page_title="Dashboard Analisis CKG Kemenkes", page_icon="🏥", layout="wide"
+    page_title="Dashboard Analisis CKG Kemenkes Tata Laksana HT dan DM", page_icon="🏥", layout="wide"
 )
 
-st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG)")
+st.title("🏥 Dashboard Analisis Data Cek Kesehatan Gratis (CKG) HT dan DM")
 st.write(
     "Aplikasi portal monitoring data skrining CKG, cakupan diagnosis, pengobatan,"
     " dan analisis klinis."
