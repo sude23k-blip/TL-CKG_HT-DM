@@ -70,11 +70,13 @@ if uploaded_file is not None:
   prev_ht = (tot_ht / scr_ht * 100) if scr_ht > 0 else 0
   obat_ht = df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
   persen_ht = (obat_ht / tot_ht * 100) if tot_ht > 0 else 0
+
   edu_ht = (
       df["Edukasi Hipertensi"].sum()
       if "Edukasi Hipertensi" in df.columns
       else 0
   )
+  persen_edu_ht = (edu_ht / tot_ht * 100) if tot_ht > 0 else 0
 
   scr_dm = (
       df["Jumlah Orang Diperiksa gula darah (Usia ≥ 18 Tahun)"].sum()
@@ -93,9 +95,11 @@ if uploaded_file is not None:
       else 0
   )
   persen_dm = (obat_dm / tot_dm * 100) if tot_dm > 0 else 0
+
   edu_dm = (
       df["Edukasi Diabetes"].sum() if "Edukasi Diabetes" in df.columns else 0
   )
+  persen_edu_dm = (edu_dm / tot_dm * 100) if tot_dm > 0 else 0
 
   diag_ht = (
       df["Diagnosis Hipertensi"].sum()
@@ -306,16 +310,30 @@ if uploaded_file is not None:
         else:
           st.info("Tidak ada data alasan.")
 
-  # --- TAB 3: CAKUPAN EDUKASI ---
+  # --- TAB 3: CAKUPAN EDUKASI (DENGAN PERSENTASE) ---
   with tab3:
     st.subheader("🗣️ Analisis Cakupan Pemberian Edukasi (HT & DM)")
-    col_e1, col_e2 = st.columns(2)
 
-    with col_e1:
-      st.markdown(
-          f"**Edukasi Hipertensi (Total Diberikan: {edu_ht:,} dari {tot_ht:,}"
-          " Penderita)**"
+    # Metrik Ringkasan Edukasi Berbasis Persentase
+    ce1, ce2 = st.columns(2)
+    with ce1:
+      st.metric(
+          "Edukasi Hipertensi",
+          f"{edu_ht:,} Orang",
+          delta=f"{persen_edu_ht:.1f}% dari total penderita ({tot_ht:,})",
       )
+    with ce2:
+      st.metric(
+          "Edukasi Diabetes",
+          f"{edu_dm:,} Orang",
+          delta=f"{persen_edu_dm:.1f}% dari total penderita ({tot_dm:,})",
+      )
+
+    st.markdown("---")
+
+    col_e1, col_e2 = st.columns(2)
+    with col_e1:
+      st.markdown("**Grafik Jumlah Edukasi Hipertensi per Wilayah**")
       if "Edukasi Hipertensi" in df.columns and "Nama Faskes" in df.columns:
         chart_edu_ht = (
             df.groupby(group_col)["Edukasi Hipertensi"].sum().reset_index()
@@ -333,10 +351,7 @@ if uploaded_file is not None:
         st.plotly_chart(fig_edu_ht, use_container_width=True)
 
     with col_e2:
-      st.markdown(
-          f"**Edukasi Diabetes (Total Diberikan: {edu_dm:,} dari {tot_dm:,}"
-          " Penderita)**"
-      )
+      st.markdown("**Grafik Jumlah Edukasi Diabetes per Wilayah**")
       if "Edukasi Diabetes" in df.columns and "Nama Faskes" in df.columns:
         chart_edu_dm = (
             df.groupby(group_col)["Edukasi Diabetes"].sum().reset_index()
