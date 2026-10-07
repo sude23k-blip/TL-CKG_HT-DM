@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -15,20 +16,61 @@ st.write(
     " edukasi, dan analisis klinis."
 )
 
-# 1. Upload File Excel ASIK Kemenkes
+# --- BAGIAN OTOMATIS LOAD FILE DEFAULT & UPLOAD BARU ---
+default_file_path = "data_default.xlsx"
+
+# Widget uploader (tetap disediakan sebagai opsi jika ingin mengganti data)
 uploaded_file = st.file_uploader(
-    "Upload file Excel laporan CKG Kemenkes (.xlsx)", type=["xlsx", "csv"]
+    "📁 Upload file Excel laporan CKG baru (Opsional - Jika ingin mengganti data"
+    " default)",
+    type=["xlsx", "csv"],
 )
 
+data_loaded = False
+df_raw = None
+
 if uploaded_file is not None:
-  # Membaca file utama
+  # Jika user meng-upload file baru
   try:
     df_raw = pd.read_excel(uploaded_file, sheet_name="Data Agregat CKG")
+    st.success("✅ Menggunakan data dari file yang baru di-upload!")
+    data_loaded = True
   except:
-    df_raw = pd.read_excel(uploaded_file)
+    try:
+      df_raw = pd.read_excel(uploaded_file)
+      st.success("✅ Menggunakan data dari file yang baru di-upload!")
+      data_loaded = True
+    except Exception as e:
+      st.error(f"Gagal membaca file yang di-upload: {e}")
 
-  st.success("✅ Data berhasil dimuat!")
+elif os.path.exists(default_file_path):
+  # Jika belum upload, otomatis baca file default dari sistem/GitHub
+  try:
+    # Coba baca sheet spesifik dulu
+    df_raw = pd.read_excel(default_file_path, sheet_name="Data Agregat CKG")
+    st.info("ℹ️ Menampilkan data default dari sistem (`data_default.xlsx`).")
+    data_loaded = True
+  except Exception as e_sheet:
+    try:
+      # Jika sheet "Data Agregat CKG" tidak ditemukan, baca sheet pertama secara otomatis
+      df_raw = pd.read_excel(default_file_path, sheet_name=0)
+      st.info(
+          "ℹ️ Menampilkan data default dari sheet pertama `data_default.xlsx`."
+      )
+      data_loaded = True
+    except Exception as e:
+      st.error(
+          f"Gagal membaca file default sistem. Detail error: {e_sheet} / {e}"
+      )
+else:
+  st.warning(
+      "⚠️ File data default (`data_default.xlsx`) tidak ditemukan di repository"
+      " GitHub. Silakan pastikan file tersebut sudah di-upload ke repository"
+      " sejajar dengan `app.py`, atau upload melalui tombol di atas."
+  )
 
+# Lanjutkan proses jika data berhasil dimuat (baik secara otomatis maupun upload)
+if data_loaded and df_raw is not None:
   # Simpan salinan asli untuk grafik per kecamatan yang ingin ditampilkan utuh
   df_original = df_raw.copy()
 
@@ -1023,6 +1065,8 @@ if uploaded_file is not None:
 
 else:
   st.warning(
-      "Silakan upload file Excel laporan CKG Anda terlebih dahulu melalui"
-      " tombol di atas."
+      "⚠️ File `data_default.xlsx` belum terbaca otomatis. Silakan pastikan file"
+      " tersebut sudah di-commit/push ke repository GitHub Anda sejajar dengan"
+      " file `app.py`, atau gunakan tombol upload di atas untuk memasukkan"
+      " data secara manual."
   )
