@@ -128,12 +128,11 @@ if data_loaded and df_raw is not None:
   persen_diag_ht = (diag_ht / tot_ht * 100) if tot_ht > 0 else 0
 
   obat_ht = df["Diberikan Obat"].sum() if "Diberikan Obat" in df.columns else 0
-  persen_ht = (obat_ht / tot_ht * 100) if tot_ht > 0 else 0
+  # Pembagi diubah dari tot_ht menjadi diag_ht (penderita terdiagnosis)
+  persen_ht = (obat_ht / diag_ht * 100) if diag_ht > 0 else 0
 
   edu_ht = (
-      df["Edukasi Hipertensi"].sum()
-      if "Edukasi Hipertensi" in df.columns
-      else 0
+      df["Edukasi Hipertensi"].sum() if "Edukasi Hipertensi" in df.columns else 0
   )
   persen_edu_ht = (edu_ht / tot_ht * 100) if tot_ht > 0 else 0
 
@@ -159,7 +158,8 @@ if data_loaded and df_raw is not None:
       if "Diberikan Obat Diabetes" in df.columns
       else 0
   )
-  persen_dm = (obat_dm / tot_dm * 100) if tot_dm > 0 else 0
+  # Pembagi diubah dari tot_dm menjadi diag_dm (penderita terdiagnosis)
+  persen_dm = (obat_dm / diag_dm * 100) if diag_dm > 0 else 0
 
   edu_dm = (
       df["Edukasi Diabetes"].sum() if "Edukasi Diabetes" in df.columns else 0
@@ -201,7 +201,7 @@ if data_loaded and df_raw is not None:
       st.metric(
           "Hipertensi Diberikan Obat",
           f"{obat_ht:,}",
-          delta=f"{persen_ht:.1f}% dari penderita",
+          delta=f"{persen_ht:.1f}% dari penderita terdiagnosis ({diag_ht:,})",
       )
 
     st.markdown("")
@@ -225,7 +225,7 @@ if data_loaded and df_raw is not None:
       st.metric(
           "Diabetes Diberikan Obat",
           f"{obat_dm:,}",
-          delta=f"{persen_dm:.1f}% dari penderita",
+          delta=f"{persen_dm:.1f}% dari penderita terdiagnosis ({diag_dm:,})",
       )
 
     st.markdown("---")
@@ -397,7 +397,11 @@ if data_loaded and df_raw is not None:
     )
 
     # Persentase Diagnosis HT Per PKM (Urut Tertinggi ke Terendah)
-    if "Diagnosis Hipertensi" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+    if (
+        "Diagnosis Hipertensi" in df.columns
+        and "Jumlah Penderita Hipertensi" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
       st.markdown("**Persentase Diagnosis Hipertensi (%) Per Puskesmas**")
       df_diag_pkm_ht = (
           df.groupby("Nama Faskes")[
@@ -436,7 +440,11 @@ if data_loaded and df_raw is not None:
     st.markdown("---")
 
     # Persentase Diagnosis DM Per PKM (Urut Tertinggi ke Terendah)
-    if "Diberikan Diagnosis" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
+    if (
+        "Diberikan Diagnosis" in df.columns
+        and "Jumlah Penderita Diabetes" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
       st.markdown("**Persentase Diagnosis Diabetes (%) Per Puskesmas**")
       df_diag_pkm_dm = (
           df.groupby("Nama Faskes")[
@@ -911,7 +919,11 @@ if data_loaded and df_raw is not None:
     )
 
     # Persentase Pengobatan HT Per PKM (Urut Tertinggi ke Terendah)
-    if "Diberikan Obat" in df.columns and "Jumlah Penderita Hipertensi" in df.columns and "Nama Faskes" in df.columns:
+    if (
+        "Diberikan Obat" in df.columns
+        and "Jumlah Penderita Hipertensi" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
       st.markdown("**Persentase Pengobatan Hipertensi (%) Per Puskesmas**")
       df_obat_pkm_ht = (
           df.groupby("Nama Faskes")[
@@ -952,7 +964,11 @@ if data_loaded and df_raw is not None:
     st.markdown("---")
 
     # Persentase Pengobatan DM Per PKM (Urut Tertinggi ke Terendah)
-    if "Diberikan Obat Diabetes" in df.columns and "Jumlah Penderita Diabetes" in df.columns and "Nama Faskes" in df.columns:
+    if (
+        "Diberikan Obat Diabetes" in df.columns
+        and "Jumlah Penderita Diabetes" in df.columns
+        and "Nama Faskes" in df.columns
+    ):
       st.markdown("**Persentase Pengobatan Diabetes (%) Per Puskesmas**")
       df_obat_pkm_dm = (
           df.groupby("Nama Faskes")[
