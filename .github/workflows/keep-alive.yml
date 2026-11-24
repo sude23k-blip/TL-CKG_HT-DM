@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Ping Streamlit App
         run: |
-          status_code=$(curl -L -s -o /dev/null -w "%{http_code}" "https://ckg-htdm.streamlit.app/")
+          status_code=$(curl -L --max-redirs 5 -s -o /dev/null -w "%{http_code}" "https://ckg-htdm.streamlit.app/")
           echo "HTTP Status: $status_code"
           if [ "$status_code" -lt 200 ] || [ "$status_code" -ge 400 ]; then
             exit 1
